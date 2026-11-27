@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { fieldOffsets } from "../src/v2_inspect.js";
 import { readWire } from "../src/v2_segment.js";
 
 const P7 = new URL("../../../vectors/v2/P7/", import.meta.url);
@@ -70,4 +71,38 @@ test("a lost item with no resync item after it stops the read at the item", () =
     assert.equal(read.segments.length, 1);
     assert.equal(read.stop?.kind, "framing");
     assert.equal(read.stop?.offset, SECOND_FRAME);
+});
+
+// The element offsets of the first frame of the first segment.
+const FIRST_FRAME = readWire(source).segments[0]?.items[1]?.offset ?? -1;
+
+test("a frame with a malformed flag keeps its type and payload, its link is broken, and the read goes on", () => {
+    const damaged = source.slice();
+    const offsets = fieldOffsets(damaged, FIRST_FRAME);
+    // The critical flag of the frame is a simple value; any other simple value is malformed.
+    damaged[offsets[1]] = 0xf6;
+    const read = readWire(damaged);
+    assert.equal(read.stop, undefined);
+    assert.equal(read.segments.length, 2);
+    const wire = read.segments[0]?.frames[0];
+    assert.ok(wire !== undefined);
+    assert.ok("error" in wire.envelope);
+    assert.equal(wire.frameType, 1n);
+    assert.equal(wire.link.state, "broken");
+    assert.ok(wire.stored !== undefined);
+    assert.equal(wire.payload.state.kind, "verified");
+});
+
+test("a frame whose decoded length cannot be read is damaged by its malformed fields", () => {
+    const damaged = source.slice();
+    const offsets = fieldOffsets(damaged, FIRST_FRAME);
+    // A negative integer where the decoded length belongs.
+    damaged[offsets[4]] = 0x20;
+    const read = readWire(damaged);
+    const wire = read.segments[0]?.frames[0];
+    assert.ok(wire !== undefined);
+    assert.deepEqual(wire.payload.state, {
+        kind: "damaged",
+        damage: "malformed_fields",
+    });
 });

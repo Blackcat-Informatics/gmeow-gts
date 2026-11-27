@@ -6,6 +6,16 @@
 //! one read, and the scan of resync candidates charges against the same total.
 
 import { type Frame, type Storage } from "./v2_frame.js";
+
+/** The fields of a frame that its payload check reads: a decoded frame has them all. */
+export type PayloadFields = Pick<
+    Frame,
+    | "storage"
+    | "storedPayload"
+    | "decodedLength"
+    | "payloadDigest"
+    | "encodedSignaturesSize"
+> & { content: { length: number } };
 import {
     contextHash,
     contextHashParts,
@@ -39,7 +49,11 @@ export type PayloadRefusal =
 
 /** Why a payload that was checked does not hold. */
 export type PayloadDamage =
-    "codec_constraint" | "decode_failed" | "decoded_length" | "payload_digest";
+    | "codec_constraint"
+    | "decode_failed"
+    | "decoded_length"
+    | "payload_digest"
+    | "malformed_fields";
 
 /** The outcome of a payload check. */
 export type PayloadState =
@@ -84,7 +98,7 @@ function startsWith(data: Uint8Array, prefix: Uint8Array): boolean {
 }
 
 /** The decoded bytes of a frame's payload, or the reason it does not hold (P1 section 5.4). */
-function checkPayload(frame: Frame): PayloadState {
+function checkPayload(frame: PayloadFields): PayloadState {
     const stored = frame.storedPayload;
     const length = frame.decodedLength;
     let decoded: Uint8Array;
@@ -148,7 +162,7 @@ export class PayloadBudget {
         this.#prepaid = decoded;
     }
 
-    private admit(frame: Frame): PayloadRefusal | undefined {
+    private admit(frame: PayloadFields): PayloadRefusal | undefined {
         if (!this.#refused) {
             const sizes = [
                 frame.storedPayload.length,
@@ -174,7 +188,10 @@ export class PayloadBudget {
     }
 
     /** The payload check of `frame`, charged against this budget. */
-    check(frame: Frame, storedMatches: boolean | undefined): PayloadCheck {
+    check(
+        frame: PayloadFields,
+        storedMatches: boolean | undefined,
+    ): PayloadCheck {
         const refusal = this.admit(frame);
         const state =
             refusal === undefined

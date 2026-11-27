@@ -131,7 +131,7 @@ export function frameContent(decoder: Decoder, frameType: bigint): void {
     }
 }
 
-function readStorage(
+export function readStorage(
     decoder: Decoder,
     newer: boolean,
     decodedLength: bigint,
@@ -177,7 +177,7 @@ export function readSignatures(decoder: Decoder, newer: boolean): Signature[] {
     return signatures;
 }
 
-interface Identity {
+export interface Identity {
     frameType: bigint;
     critical: boolean;
     transparent: boolean;
@@ -188,10 +188,20 @@ interface Identity {
     encoded: Uint8Array;
 }
 
-function frameIdentity(decoder: Decoder, newer: boolean): Identity {
+/**
+ * The identity fields of a frame. `newer` is undefined when the fields are read from a
+ * frame whose envelope failed: the type is then any `uint` and no flag is checked.
+ */
+export function frameIdentity(
+    decoder: Decoder,
+    newer: boolean | undefined,
+): Identity {
     const start = decoder.offset;
-    const frameType = registryCode(decoder, PARITY, newer);
-    const checkFlags = frameType <= PARITY;
+    const frameType =
+        newer === undefined
+            ? decoder.uint()
+            : registryCode(decoder, PARITY, newer);
+    const checkFlags = newer !== undefined && frameType <= PARITY;
     let error = decoder.error("forbidden_combination");
     const critical = decoder.boolean();
     if (checkFlags && critical !== frameType < COMMIT) throw error;
@@ -216,7 +226,7 @@ function frameIdentity(decoder: Decoder, newer: boolean): Identity {
     };
 }
 
-function decodeEnvelope(
+export function decodeEnvelope(
     data: Uint8Array,
     offset: number,
     registryVersion: bigint,
@@ -255,14 +265,14 @@ function decodeEnvelope(
     };
 }
 
-function checkTypeLength(frame: Frame, offset: number): Frame {
+export function checkTypeLength(frame: Frame, offset: number): Frame {
     if (!validDecodedLength(frame.frameType, frame.decodedLength)) {
         throw new FrameError("out_of_range", offset);
     }
     return frame;
 }
 
-function asFrameError<T>(read: () => T): T {
+export function asFrameError<T>(read: () => T): T {
     try {
         return read();
     } catch (error) {
