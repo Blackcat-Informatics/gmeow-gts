@@ -412,10 +412,10 @@ mod composite_halves {
         let second = signer(2);
         let keys = HeldKeys::new([held(&first), held(&second)]);
         let first_id = HeldKey::identifier(COMPOSITE, &first.public_key);
-        let (first_ml, first_ed) = halves(&first, &h0, &frame);
-        let (_, second_ed) = halves(&second, &h0, &frame);
+        let (first_mldsa_half, first_ed25519_half) = halves(&first, &h0, &frame);
+        let (_, second_ed25519_half) = halves(&second, &h0, &frame);
 
-        let valid = [first_ml.clone(), first_ed].concat();
+        let valid = [first_mldsa_half.clone(), first_ed25519_half].concat();
         let result = verify_signature(
             &Signature {
                 algorithm: COMPOSITE,
@@ -428,7 +428,7 @@ mod composite_halves {
         );
         assert_eq!(result.status, SignatureStatus::Valid);
 
-        let swapped = [first_ml, second_ed].concat();
+        let swapped = [first_mldsa_half, second_ed25519_half].concat();
         let result = verify_signature(
             &Signature {
                 algorithm: COMPOSITE,
