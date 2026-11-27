@@ -349,3 +349,61 @@ func TestEachRecordOfAFrameGetsItsOwnResult(t *testing.T) {
 		})
 	}
 }
+
+// TestRepeatedRecordsAreRefusedOnceAndGiveNoResult: two equal records in one list are
+// unordered_or_repeated, and the frame has no signature result (P6 section 1).
+func TestRepeatedRecordsAreRefusedOnceAndGiveNoResult(t *testing.T) {
+	result := ReadWire(vectorBytes(t, "sig-duplicate-records.bin"), DefaultReadCapacity(), heldReproductionKeys(t)...)
+	var frames int
+	for i := range result.Segments {
+		for _, item := range result.Segments[i].Items {
+			if item.Frame == nil {
+				continue
+			}
+			frames++
+			if item.Frame.Malformed != UnorderedOrRepeated {
+				t.Fatalf("frame malformed %q, want %q", item.Frame.Malformed, UnorderedOrRepeated)
+			}
+			if len(item.Frame.Signatures) != 0 {
+				t.Fatalf("frame has %d signature results, want none", len(item.Frame.Signatures))
+			}
+		}
+	}
+	if frames != 1 {
+		t.Fatalf("got %d frames, want 1", frames)
+	}
+}
+
+// TestRecordsOfOneKeyAreEachJudged: two records of one held key in one list give two results,
+// and each is judged alone (P6-5): a refused record does not change its neighbour's result.
+func TestRecordsOfOneKeyAreEachJudged(t *testing.T) {
+	keys := heldReproductionKeys(t)
+	outcomes := frameSignatureOutcomes(t, "sig-same-key-two-values.bin", keys)
+	if len(outcomes) != 2 {
+		t.Fatalf("got %d results %v, want 2", len(outcomes), outcomes)
+	}
+	valid := 0
+	for _, outcome := range outcomes {
+		if outcome[0] == string(SignatureValid) {
+			valid++
+		}
+	}
+	if valid != 1 {
+		t.Fatalf("got %d valid results in %v, want exactly one", valid, outcomes)
+	}
+}
+
+// TestAValidRecordBesideAnUnheldKeyIsStillValid: a record under a key the verifier does not hold
+// is unverified, and the valid record beside it keeps its own result.
+func TestAValidRecordBesideAnUnheldKeyIsStillValid(t *testing.T) {
+	outcomes := frameSignatureOutcomes(t, "sig-list-independence.bin", heldReproductionKeys(t))
+	if len(outcomes) != 2 {
+		t.Fatalf("got %d results %v, want 2", len(outcomes), outcomes)
+	}
+	if outcomes[0] != [2]string{string(SignatureUnverified), string(ReasonKeyNotHeld)} {
+		t.Fatalf("first result %v, want unverified key_not_held", outcomes[0])
+	}
+	if outcomes[1] != [2]string{string(SignatureValid), ""} {
+		t.Fatalf("second result %v, want valid", outcomes[1])
+	}
+}
