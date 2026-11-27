@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -260,5 +261,46 @@ func TestFrameSignaturesMatchTheVectors(t *testing.T) {
 				t.Fatalf("got %s %q, want %s %q", found.Status, found.Reason, tc.status, tc.reason)
 			}
 		})
+	}
+}
+
+// smallOrderEncodingList is the eight encodings of the points of small order (P6 section 4.1).
+var smallOrderEncodingList = []string{
+	"0100000000000000000000000000000000000000000000000000000000000000",
+	"ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+	"0000000000000000000000000000000000000000000000000000000000000000",
+	"0000000000000000000000000000000000000000000000000000000000000080",
+	"26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+	"26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85",
+	"c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+	"c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+}
+
+// TestEd25519SmallOrderKeysAreRefused: an Ed25519 signature whose held key is one of the
+// eight points of small order is refused as small_order_key, whatever its value, and the
+// corpus gives that outcome for each of the eight vectors.
+func TestEd25519SmallOrderKeysAreRefused(t *testing.T) {
+	var keys []HeldKey
+	for _, encoding := range smallOrderEncodingList {
+		point := mustHex(t, encoding)
+		keys = append(keys, HeldKey{KeyID: KeyIdentifier(Ed25519Algorithm, point), Algorithm: Ed25519Algorithm, PublicKey: point})
+	}
+	for index := 1; index <= 8; index++ {
+		name := fmt.Sprintf("ed25519-key-small-order-%d", index)
+		result := ReadWire(vectorBytes(t, name+".bin"), DefaultReadCapacity(), keys...)
+		var found *SignatureResult
+		for i := range result.Segments {
+			for _, item := range result.Segments[i].Items {
+				if item.Frame != nil && len(item.Frame.Signatures) > 0 && found == nil {
+					found = &item.Frame.Signatures[0]
+				}
+			}
+		}
+		if found == nil {
+			t.Fatalf("%s: no frame carries a signature result", name)
+		}
+		if found.Status != SignatureInvalid || found.Reason != ReasonSmallOrderKey {
+			t.Fatalf("%s: got %s %q, want invalid small_order_key", name, found.Status, found.Reason)
+		}
 	}
 }
