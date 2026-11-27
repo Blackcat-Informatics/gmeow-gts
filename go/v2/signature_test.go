@@ -627,3 +627,16 @@ func TestCompositeIsNotVerifiedByOneComponentKey(t *testing.T) {
 		t.Fatalf("composite key id with the Ed25519 bytes: got %+v, want %s", got, ReasonKeyMismatch)
 	}
 }
+
+// TestCompositeHeldUnderItsEd25519HalfOnlyIsNotHeld: a composite signature read with only the
+// Ed25519 half of its key held has no held key under its key identifier, so it is unverified
+// with key_not_held (P6 step 2), not judged by the classical half alone.
+func TestCompositeHeldUnderItsEd25519HalfOnlyIsNotHeld(t *testing.T) {
+	composite := heldReproductionKeys(t)[0]
+	ed := composite.PublicKey[mldsa65KeyLength:]
+	keys := []HeldKey{{KeyID: KeyIdentifier(Ed25519Algorithm, ed), Algorithm: Ed25519Algorithm, PublicKey: ed}}
+	outcomes := frameSignatureOutcomes(t, "composite-honest.bin", keys)
+	if len(outcomes) == 0 || outcomes[0] != [2]string{string(SignatureUnverified), string(ReasonKeyNotHeld)} {
+		t.Fatalf("got %v, want unverified key_not_held first", outcomes)
+	}
+}

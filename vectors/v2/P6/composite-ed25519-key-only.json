@@ -1,0 +1,45 @@
+{
+ "name": "composite-ed25519-key-only",
+ "status": "built and matches",
+ "note": "the composite signature of composite-honest.bin checked with only the Ed25519 half of the composite key held; derived by python/scripts/gen_p6_key_only.py",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "composite-honest.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "trusted_keys": [
+     "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301"
+    ],
+    "held_keys": [
+     [
+      "b9022e9133a94884b0a42a97fb0a59ee47d77837824da3323b7be9af27ee1133",
+      1,
+      "174553b456dddfc6908ecab1c101fe6ab21e2baa0617795b7d43a63482993fd5"
+     ]
+    ]
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018281582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac330181835820b9022e9133a94884b0a42a97fb0a59ee47d77837824da3323b7be9af27ee1133015820174553b456dddfc6908ecab1c101fe6ab21e2baa0617795b7d43a63482993fd5870281920000190e46810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208cb2f3a6fdfa53ed306a104a250774df88d7ce3771d9e9171112a0f1d3a7aa69828b010b1875820209018101810180810180808b021880190dc682020e01810181018187038202183602582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac33010101f4810280818718298202183682028203028202028101810181018080820258208cb2f3a6fdfa53ed306a104a250774df88d7ce3771d9e9171112a0f1d3a7aa698201000200",
+   "result": [
+    "unverified",
+    "key_not_held",
+    2,
+    "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301",
+    1,
+    1,
+    false
+   ]
+  }
+ ]
+}
