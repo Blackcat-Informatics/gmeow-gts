@@ -10,15 +10,15 @@ import (
 	"slices"
 )
 
-// ed25519Algorithm is the code of the `ed25519` signature algorithm (P6 section 4.1).
-const ed25519Algorithm = 1
-
 // AppendSigned writes a frame whose signatures element holds one `ed25519` signature by each
 // key. Every signature is made over the effective identifier of the frame, with the signed
 // subject of P6 section 2, and is verified by VerifySignature before it is written (P6-29).
 // A key may appear once (P6-5). The records are written in ascending bytewise order of their
 // encodings (P6-52).
 func (w *SegmentWriter) AppendSigned(frameType uint64, content, payload []byte, keys ...ed25519.PrivateKey) (Digest, error) {
+	if frameType == parityType {
+		return Digest{}, fmt.Errorf("a transparent frame carries no signature (P6-3)")
+	}
 	if err := checkFrame(frameType, content, payload); err != nil {
 		return Digest{}, err
 	}
@@ -45,16 +45,19 @@ func (w *SegmentWriter) signer(keys []ed25519.PrivateKey) func(Digest) ([]byte, 
 		seen := make(map[Digest]bool, len(keys))
 		records := make([][]byte, 0, len(keys))
 		for _, key := range keys {
+			if len(key) != ed25519.PrivateKeySize {
+				return nil, fmt.Errorf("an ed25519 private key is %d bytes, not %d", len(key), ed25519.PrivateKeySize)
+			}
 			public := key.Public().(ed25519.PublicKey)
-			keyID := KeyIdentifier(ed25519Algorithm, public)
+			keyID := KeyIdentifier(Ed25519Algorithm, public)
 			if seen[keyID] {
 				return nil, fmt.Errorf("key %x signs the frame twice", keyID)
 			}
 			seen[keyID] = true
-			record := SignatureRecord{Algorithm: ed25519Algorithm, KeyID: keyID}
+			record := SignatureRecord{Algorithm: Ed25519Algorithm, KeyID: keyID}
 			message := SignedMessage(record, w.opener, frame)
 			record.Value = ed25519.Sign(key, message[:])
-			held := []HeldKey{{KeyID: keyID, Algorithm: ed25519Algorithm, PublicKey: public}}
+			held := []HeldKey{{KeyID: keyID, Algorithm: Ed25519Algorithm, PublicKey: public}}
 			if result := VerifySignature(record, w.opener, frame, held); result.Status != SignatureValid {
 				return nil, fmt.Errorf("the signature fails its own verification: %s %s", result.Status, result.Reason)
 			}

@@ -57,3 +57,23 @@ func TestEd25519HonestIsWrittenByteForByte(t *testing.T) {
 		t.Fatalf("the written segment differs from the stored file:\n got % x\nwant % x", got, stored)
 	}
 }
+
+// TestAppendSignedRefusesATransparentFrame: a transparent frame carries no signature (P6-3), so
+// the writer refuses to sign one and writes nothing.
+func TestAppendSignedRefusesATransparentFrame(t *testing.T) {
+	_, key, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := NewSegmentWriter(SegmentOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := writer.Bytes()
+	if _, err := writer.AppendSigned(parityType, nil, nil, key); err == nil {
+		t.Fatal("a transparent frame was signed")
+	}
+	if !bytes.Equal(writer.Bytes(), before) {
+		t.Fatal("a refused transparent frame changed the segment")
+	}
+}
