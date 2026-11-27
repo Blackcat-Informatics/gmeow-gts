@@ -313,9 +313,9 @@ class SignatureVerifyTest {
         val value = Path("../vectors/v2/P6/sign-composite-reproduce.value.bin").readBytes()
         val publicKey = Path("../vectors/v2/P6/sign-composite-reproduce.public-key.bin").readBytes()
         val held = HeldKey(2uL, parseHex(COMPOSITE_KEY_ID), publicKey)
-        val frame = ByteArray(32) { it.toByte() }
-        val opener = ByteArray(32) { (32 + it).toByte() }
-        val valid = verifySignature(SignatureRecord(2uL, held.keyId, value), frame, opener, listOf(held))
+        val frame = ByteArray(32) { (32 + it).toByte() }
+        val opener = ByteArray(32) { it.toByte() }
+        val valid =verifySignature(SignatureRecord(2uL, held.keyId, value), frame, opener, listOf(held))
         assertEquals(SignatureStatus.VALID, valid.status)
         val swapped = value.copyOfRange(0, 3309) + parseHex(SECOND_ED25519_HALF)
         val outcome = verifySignature(SignatureRecord(2uL, held.keyId, swapped), frame, opener, listOf(held))
@@ -332,9 +332,9 @@ class SignatureVerifyTest {
     fun compositeHeldUnderOneComponentKeyIsNotVerified() {
         val value = Path("../vectors/v2/P6/sign-composite-reproduce.value.bin").readBytes()
         val keyId = parseHex(COMPOSITE_KEY_ID)
-        val frame = ByteArray(32) { it.toByte() }
-        val opener = ByteArray(32) { (32 + it).toByte() }
-        val record = SignatureRecord(2uL, keyId, value)
+        val frame = ByteArray(32) { (32 + it).toByte() }
+        val opener = ByteArray(32) { it.toByte() }
+        val record =SignatureRecord(2uL, keyId, value)
         val edKey = HeldKey(1uL, parseHex(ED25519_KEY_ID), parseHex(ED25519_PUBLIC_KEY))
         val notHeld = verifySignature(record, frame, opener, listOf(edKey))
         assertEquals(SignatureStatus.UNVERIFIED, notHeld.status)
