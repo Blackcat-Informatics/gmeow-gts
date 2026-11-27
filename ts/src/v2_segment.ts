@@ -22,8 +22,15 @@ import {
     checkTypeLength,
     decodeEnvelope,
     FrameError,
+    PARITY,
     type Frame,
 } from "./v2_frame.js";
+import {
+    checkPrefixes,
+    type CommitReadError,
+    type CommitReport,
+    type IndexCheck,
+} from "./v2_prefix.js";
 import { fieldOffsets, inspectLink, malformedPayload } from "./v2_inspect.js";
 import { Decoder } from "./v2_decoder.js";
 import { decodeHeader, REGISTRY_VERSION, type Header } from "./v2_header.js";
@@ -63,6 +70,8 @@ export interface WireFrame {
     stored: Uint8Array | undefined;
     link: FrameLink;
     payload: PayloadCheck;
+    /** Whether the frame is of a type a later registry introduces and the fold stops at. */
+    unknownTypeStopsFold: boolean;
 }
 
 /** An item of a segment and the bytes it covers. */
@@ -80,6 +89,10 @@ export interface WireSegment {
     /** The identifier that the next frame is linked to. */
     head: Uint8Array | undefined;
     closing: ClosingFinding[];
+    /** The commit checks of the segment, or the claim that cannot be read. */
+    commits: CommitReport | CommitReadError | undefined;
+    /** The checks of the index frames of the segment. */
+    indexes: IndexCheck[];
     /** The offset after the last byte that belongs to the segment. */
     endOffset: number;
     /** The framing damage that ends the segment before the resync item that recovered it. */
@@ -273,9 +286,20 @@ function observeFrame(
             envelope = { error };
         }
     }
+    const newer = registryVersion > REGISTRY_VERSION;
+    const unknownTypeStopsFold =
+        newer &&
+        frameType !== undefined &&
+        frameType > PARITY &&
+        (decoded !== undefined
+            ? decoded.frame.critical
+            : data[(offsets ?? [])[1]] === 0xf5 &&
+              (data[(offsets ?? [])[2]] === 0xf4 ||
+                  data[(offsets ?? [])[2]] === 0xf5));
     return {
         wire: {
             position,
+            unknownTypeStopsFold,
             frameType,
             transparent: fields.transparent,
             envelope,
@@ -295,13 +319,21 @@ function emptySegment(opener: SegmentOpener): WireSegment {
         frames: [],
         head: identifier,
         closing: [],
+        commits: undefined,
+        indexes: [],
         endOffset: 0,
         framingFailure: undefined,
         resyncRefusal: undefined,
     };
 }
 
-function finish(segment: WireSegment, data: Uint8Array): void {
+function finish(
+    segment: WireSegment,
+    data: Uint8Array,
+    capacity: ReadCapacity,
+): void {
+    const { registryVersion, identifier } = headerOf(segment.opener);
+    if (identifier === undefined) return;
     const items: ClosingItem[] = segment.items.map((item) => ({
         kind:
             item.kind === "offsets" || item.kind === "locator"
@@ -315,6 +347,18 @@ function finish(segment: WireSegment, data: Uint8Array): void {
         frameType: frame.frameType,
     }));
     segment.closing = checkClosing(data, items, frames);
+    const checked = checkPrefixes(
+        identifier,
+        segment.frames,
+        capacity.storedBytesPerFrame,
+        registryVersion,
+    );
+    if (checked.ok) {
+        segment.commits = checked.report;
+        segment.indexes = checked.indexes;
+    } else {
+        segment.commits = checked.error;
+    }
 }
 
 function damageBefore(
@@ -559,7 +603,7 @@ export function readWire(
                 data,
             );
             if (recovered !== undefined) {
-                finish(segment, data);
+                finish(segment, data, capacity);
                 result.segments.push(segment);
                 segment = recoveredSegment(recovered.offset, recovered);
                 continue;
@@ -582,7 +626,7 @@ export function readWire(
                 break;
             }
             segment.endOffset = next.offset;
-            finish(segment, data);
+            finish(segment, data, capacity);
             result.segments.push(segment);
             segment = emptySegment(begun);
             segment.items.push({
@@ -609,7 +653,7 @@ export function readWire(
         walk.limitOffset === undefined
             ? undefined
             : { kind: "item_limit", offset: walk.limitOffset };
-    finish(segment, data);
+    finish(segment, data, capacity);
     result.segments.push(segment);
     return result;
 }
