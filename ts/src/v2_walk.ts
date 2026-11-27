@@ -10,12 +10,14 @@ import {
     itemEnd,
     type FramingReason,
 } from "./v2_framing.js";
+import { RESYNC_MAX, type Candidate, type ResyncScanner } from "./v2_resync.js";
 import {
-    RESYNC_MAX,
-    type Candidate,
-    type ResyncBudget,
-    type ResyncScanner,
-} from "./v2_resync.js";
+    nextPrefix,
+    testParityCandidate,
+    type ParityCandidate,
+    type ParityContext,
+} from "./v2_parity.js";
+import type { PayloadBudget } from "./v2_payload.js";
 
 /** The reasons an item of a segment is malformed (P2 section 4.7, `malformed_value`). */
 export type MalformedReason =
@@ -80,16 +82,20 @@ export class ItemWalk {
     }
 
     /**
-     * Scans for a resync candidate from `start` up to the end of the lost item `lost`. An
-     * accepted candidate moves the walk to the first byte after it and drops the boundaries
-     * held past it; the items it skips are not counted.
+     * Scans for the next candidate that resumes the read after a lost item: a resync item from
+     * `start` to the end of `lost`, and, when `parity` is given, the parity candidates of the
+     * segment in the same ascending order (P5 section 7.2, step 6). An accepted resync item or a
+     * passing parity candidate moves the walk to the candidate's offset and drops the boundaries
+     * held past it; the items it skips are not counted, except the torn item a parity region
+     * replaces.
      */
     recover(
         scanner: ResyncScanner,
         start: number,
         lost: Boundary,
-        budget: ResyncBudget,
-    ): Candidate | undefined {
+        budget: PayloadBudget,
+        parity?: ParityContext,
+    ): Candidate | ParityCandidate | undefined {
         if (lost.failure === undefined && this.peek() !== undefined) {
             const end = Math.min(lost.end + RESYNC_MAX, this.data.length);
             for (
@@ -101,13 +107,67 @@ export class ItemWalk {
             }
         }
         if (this.count === this.limit) return undefined;
-        const outcome = scanner.scan(start, lost.end, budget);
+        const outcome =
+            parity === undefined
+                ? scanner.scan(start, lost.end, budget)
+                : this.scanBoth(scanner, start, lost, budget, parity);
         if (outcome?.kind === "accepted") {
             this.count += 1;
             this.held.length = 0;
             this.offset = outcome.value.nextOffset;
+        } else if (outcome?.kind === "parity") {
+            this.count += lost.failure === "torn_tail" ? 1 : 0;
+            this.held.length = 0;
+            this.offset = outcome.offset;
         }
         return outcome;
+    }
+
+    /**
+     * Tests the resync candidates and the parity candidates in one pass in ascending offset.
+     * Resync candidates are tested over their own run from `start`; parity candidates from the
+     * first byte that cannot be delimited. The first candidate that passes is returned, or the
+     * first refusal by the total decoded length.
+     */
+    private scanBoth(
+        scanner: ResyncScanner,
+        start: number,
+        lost: Boundary,
+        budget: PayloadBudget,
+        parity: ParityContext,
+    ): Candidate | ParityCandidate | undefined {
+        let resyncFrom = start;
+        let parityFrom = lost.offset;
+        for (;;) {
+            const found = nextPrefix(this.data, parityFrom);
+            const bound = found ?? lost.end;
+            const candidate = scanner.scan(resyncFrom, bound, budget);
+            if (candidate !== undefined) return candidate;
+            resyncFrom = Math.max(resyncFrom, bound);
+            if (found === undefined) return undefined;
+            const verdict = testParityCandidate(
+                this.data,
+                found,
+                parity,
+                budget,
+            );
+            if (verdict.kind === "passed") {
+                return {
+                    kind: "parity",
+                    offset: found,
+                    anchor: verdict.anchor,
+                };
+            }
+            if (verdict.kind === "refused") {
+                return {
+                    kind: "parity_refused",
+                    offset: found,
+                    length: verdict.length,
+                    count: verdict.count,
+                };
+            }
+            parityFrom = found + 1;
+        }
     }
 
     /** The offset of the first item that the item limit left unread, if it did. */

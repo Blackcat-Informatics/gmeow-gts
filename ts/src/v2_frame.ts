@@ -226,10 +226,24 @@ export function frameIdentity(
     };
 }
 
+/** The bytes that begin the plain storage of a parity frame (`storage` of `[1]`). */
+const PLAIN_STORAGE = Uint8Array.of(0x81, 0x01);
+/** The bytes of an empty `signatures` list. */
+const NO_SIGNATURES = Uint8Array.of(0x80);
+
+function startsWithAt(
+    data: Uint8Array,
+    offset: number,
+    bytes: Uint8Array,
+): boolean {
+    return bytes.every((byte, index) => data[offset + index] === byte);
+}
+
 export function decodeEnvelope(
     data: Uint8Array,
     offset: number,
     registryVersion: bigint,
+    parityOnly: boolean,
 ): { frame: Frame; lengthOffset: number } {
     const decoder = new Decoder(data, offset);
     const newer = registryVersion > 1n;
@@ -238,11 +252,21 @@ export function decodeEnvelope(
     if (decoder.uint() !== FRAME) throw kindError;
     const identity = frameIdentity(decoder, newer);
     let error = decoder.error("forbidden_combination");
+    if (
+        parityOnly &&
+        (identity.frameType !== PARITY ||
+            !startsWithAt(data, decoder.offset, PLAIN_STORAGE))
+    ) {
+        throw error;
+    }
     const storage = readStorage(decoder, newer, identity.decodedLength);
     if (identity.frameType === PARITY && storage.kind !== "plain") throw error;
     const storedPayload = decoder.byteString();
     const identifier = decoder.byteString(32);
     error = decoder.error("forbidden_combination");
+    if (parityOnly && !startsWithAt(data, decoder.offset, NO_SIGNATURES)) {
+        throw error;
+    }
     const signatures = readSignatures(decoder, newer);
     if (identity.frameType === PARITY && signatures.length !== 0) throw error;
     return {
@@ -296,7 +320,23 @@ export function decodeFrame(
     registryVersion: bigint,
 ): Frame {
     const { frame, lengthOffset } = asFrameError(() =>
-        decodeEnvelope(data, offset, registryVersion),
+        decodeEnvelope(data, offset, registryVersion, false),
     );
     return checkTypeLength(frame, lengthOffset);
+}
+
+/**
+ * Reads the envelope of a candidate parity frame at `offset` (P5 section 6.5): a frame of type
+ * parity with plain storage and no signatures. Nothing else of the envelope is judged here.
+ *
+ * @throws FrameError at the first field that is not as the type states.
+ */
+export function decodeParityCandidate(
+    data: Uint8Array,
+    offset: number,
+    registryVersion: bigint,
+): { frame: Frame; lengthOffset: number } {
+    return asFrameError(() =>
+        decodeEnvelope(data, offset, registryVersion, true),
+    );
 }

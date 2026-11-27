@@ -127,6 +127,10 @@ function checkPayload(frame: PayloadFields): PayloadState {
     return { kind: "verified", decoded };
 }
 
+/** Why the charge of a parity candidate was refused (P5 section 7.2, step 6). */
+export type ChargeRefusal =
+    { kind: "frame" } | { kind: "total"; count: bigint | undefined };
+
 /**
  * The file-wide budget of decoded bytes for one read. A charge that the total refuses
  * is refused from then on: every later charge and check in the read is unchecked.
@@ -155,6 +159,26 @@ export class PayloadBudget {
         }
         this.#refused = true;
         return next;
+    }
+
+    /**
+     * Charges one parity candidate of `stored` and `decoded` bytes (P5 section 7.2, step 6). A
+     * candidate above the size of one frame is refused without a charge; a candidate that the
+     * total refuses reports the total it would make, or none when the total was refused before.
+     */
+    chargeCandidate(
+        stored: bigint,
+        decoded: bigint,
+    ): ChargeRefusal | undefined {
+        if (this.#refused) return { kind: "total", count: undefined };
+        if (
+            stored > this.capacity.storedBytesPerFrame ||
+            decoded > this.capacity.decodedBytesPerFrame
+        ) {
+            return { kind: "frame" };
+        }
+        const count = this.charge(decoded);
+        return count === undefined ? undefined : { kind: "total", count };
     }
 
     /** Records that the decoded length of the next frame was already charged. */

@@ -87,6 +87,8 @@ export interface WireFrame {
     unknownTypeStopsFold: boolean;
     /** The stage 1 judgement of a parity frame in order, absent for any other frame. */
     judgement: ParityJudgement | undefined;
+    /** Whether the frame is read after a resumption and its anchor is not its predecessor. */
+    detached: boolean;
     /** The result of each signature of the frame, empty when the frame is not eligible. */
     signatures: SignatureResult[];
 }
@@ -108,6 +110,12 @@ export interface WireSegment {
     closing: ClosingFinding[];
     /** The earlier parity frames of the segment, as condition 6 of P5 section 6.6 compares them. */
     earlier: EarlierParity;
+    /** The `anchor` of the parity frame at which reading resumed, until the next ordinary frame. */
+    anchor: Uint8Array | undefined;
+    /** The damaged regions that a parity frame resumed the read after. */
+    resumptions: FramingDamage[];
+    /** The parity candidate that the total decoded length refused while recovering a lost item. */
+    parityRefusal: ResyncRefusal | undefined;
     /** The commit checks of the segment, or the claim that cannot be read. */
     commits: CommitReport | CommitReadError | undefined;
     /** The checks of the index frames of the segment. */
@@ -241,7 +249,7 @@ function observeFrame(
     let failure: FrameError | undefined;
     try {
         decoded = asFrameError(() =>
-            decodeEnvelope(data, boundary.offset, registryVersion),
+            decodeEnvelope(data, boundary.offset, registryVersion, false),
         );
     } catch (error) {
         if (!(error instanceof FrameError)) throw error;
@@ -336,6 +344,7 @@ function observeFrame(
             unknownTypeStopsFold,
             judgement,
             signatures: [],
+            detached: false,
             frameType,
             transparent: fields.transparent,
             envelope,
@@ -345,6 +354,13 @@ function observeFrame(
         },
         malformed: decoded === undefined,
     };
+}
+
+function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
+    return (
+        left.length === right.length &&
+        left.every((byte, index) => byte === right[index])
+    );
 }
 
 /** The identifier of the segment's opener, absent when the opener has none. */
@@ -387,6 +403,9 @@ function emptySegment(opener: SegmentOpener): WireSegment {
         head: identifier,
         closing: [],
         earlier: new EarlierParity(),
+        anchor: undefined,
+        resumptions: [],
+        parityRefusal: undefined,
         commits: undefined,
         indexes: [],
         endOffset: 0,
@@ -578,8 +597,10 @@ function endAtResync(
 }
 
 /**
- * Recovers from a lost item by scanning for the next resync item. An accepted candidate ends
- * `segment`; a refused one is recorded on it and the read goes on without recovery.
+ * Recovers from a lost item by scanning for the next resync item or parity candidate. An accepted
+ * resync item ends `segment` and is returned. A passing parity candidate keeps `segment`: the bytes
+ * before it become one damaged region, and its anchor becomes the predecessor of the next ordinary
+ * frame. A refused candidate is recorded on `segment` and the read goes on without recovery.
  */
 function recoverLostItem(
     segment: WireSegment,
@@ -588,16 +609,49 @@ function recoverLostItem(
     budget: PayloadBudget,
     lost: Boundary,
     data: Uint8Array,
-): Extract<Candidate, { kind: "accepted" }> | undefined {
+): Extract<Candidate, { kind: "accepted" }> | { kind: "parity" } | undefined {
     const last = segment.items.at(-1);
     const start =
         healedLast(segment) !== undefined || last === undefined
             ? lost.offset
             : last.offset + 1;
-    const candidate = walk.recover(scanner, start, lost, budget);
+    const identifier = identifierOf(segment);
+    const parity =
+        lost.failure !== undefined && identifier !== undefined
+            ? {
+                  h0: identifier,
+                  registry: headerOf(segment.opener).registryVersion,
+                  earlier: segment.earlier,
+              }
+            : undefined;
+    const candidate = walk.recover(scanner, start, lost, budget, parity);
     if (candidate?.kind === "accepted") {
         endAtResync(segment, data, lost, candidate.offset);
         return candidate;
+    }
+    if (candidate?.kind === "parity") {
+        segment.resumptions.push({
+            reason: "undelimitable_input",
+            offset: lost.offset,
+            length: candidate.offset - lost.offset,
+        });
+        segment.items.push({
+            kind: "damaged_region",
+            offset: lost.offset,
+            end: candidate.offset,
+        });
+        segment.endOffset = candidate.offset;
+        segment.anchor = candidate.anchor;
+        return { kind: "parity" };
+    }
+    if (candidate?.kind === "parity_refused") {
+        segment.parityRefusal = {
+            position: segment.items.length,
+            offset: candidate.offset,
+            length: candidate.length,
+            count: candidate.count,
+        };
+        return undefined;
     }
     if (candidate?.kind === "refused") {
         segment.resyncRefusal = {
@@ -703,7 +757,7 @@ export function readWire(
                         data,
                         next,
                         segment.items.length,
-                        segment.head ?? new Uint8Array(32),
+                        segment.anchor ?? segment.head ?? new Uint8Array(32),
                         registryVersion,
                         walk,
                         budget,
@@ -715,6 +769,11 @@ export function readWire(
                               },
                     );
                     frame = observed.wire;
+                    frame.detached =
+                        !frame.transparent &&
+                        segment.anchor !== undefined &&
+                        (segment.head === undefined ||
+                            !bytesEqual(segment.anchor, segment.head));
                     lost = observed.malformed || frame.link.state === "broken";
                 } catch (error) {
                     if (!(error instanceof FramingError)) throw error;
@@ -750,12 +809,13 @@ export function readWire(
                 next,
                 data,
             );
-            if (recovered !== undefined) {
+            if (recovered?.kind === "accepted") {
                 finish(segment, data, capacity, keys);
                 result.segments.push(segment);
                 segment = recoveredSegment(recovered.offset, recovered);
                 continue;
             }
+            if (recovered?.kind === "parity") continue;
         }
         if (next.failure !== undefined) {
             result.stop = {
@@ -786,8 +846,10 @@ export function readWire(
             continue;
         }
         if (frame !== undefined) {
-            if (frame.link.effectiveIdentifier !== undefined)
+            if (frame.link.effectiveIdentifier !== undefined) {
                 segment.head = frame.link.effectiveIdentifier;
+                segment.anchor = undefined;
+            }
             rememberParity(segment, data, next, frame, registryVersion);
             segment.frames.push(frame);
         }
