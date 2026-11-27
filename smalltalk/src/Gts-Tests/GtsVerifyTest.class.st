@@ -527,3 +527,19 @@ GtsVerifyTest >> checkV2: bytes [
 		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
 	^ { checks. findings. events }
 ]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2CompositeHalvesOfTwoValidSignaturesDoNotCombine [
+	"The ML-DSA half of one valid composite signature with the Ed25519 half of another over the same subject: the classical half refuses first (P6-26)."
+	| value publicKey opener frame keyId message swapped checks |
+	value := '/workspace/vectors/v2/P6/sign-composite-reproduce.value.bin' asFileReference binaryReadStream contents.
+	publicKey := '/workspace/vectors/v2/P6/sign-composite-reproduce.public-key.bin' asFileReference binaryReadStream contents.
+	opener := GtsHex decode: '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'.
+	frame := GtsHex decode: '202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f'.
+	keyId := GtsHex decode: '84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301'.
+	checks := GtsV2SignatureChecks held: { { '84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301'. 2. publicKey } }.
+	message := GtsBlake3 deriveWith: 'gts2 signature subject' bytes: (GtsCborWriter encode: { 2. keyId. opener. frame }).
+	self assert: (checks compositeFailureFor: value message: message publicKey: publicKey) isNil.
+	swapped := (value copyFrom: 1 to: 3309), (GtsHex decode: 'b904b9acfa7c6c9194fe0e754027fb95919fd0c604de640a0f0027de0fa877c298d2a55a54cb9a46e1f0774392c725d8003e8a6894efbc14a27755155a990e02').
+	self assert: (checks compositeFailureFor: swapped message: message publicKey: publicKey) equals: 'composite_classical_failed'
+]
