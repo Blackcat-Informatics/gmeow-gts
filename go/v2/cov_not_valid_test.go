@@ -40,14 +40,7 @@ func TestCovNotValidIsWrittenByteForByte(t *testing.T) {
 	if len(frames) != 1 {
 		t.Fatalf("got %d frames, want 1", len(frames))
 	}
-	seed03ea := make([]byte, ed25519.SeedSize)
-	seed0b79 := make([]byte, ed25519.SeedSize)
-	for i := range seed03ea {
-		seed03ea[i] = byte(0x20 + i)
-		seed0b79[i] = byte(i)
-	}
-	keyA := ed25519.NewKeyFromSeed(seed03ea)
-	keyB := ed25519.NewKeyFromSeed(seed0b79)
+	keyA, keyB := recoveredKeys()
 
 	writer, err := NewSegmentWriter(SegmentOptions{})
 	if err != nil {
@@ -73,6 +66,18 @@ func TestCovNotValidIsWrittenByteForByte(t *testing.T) {
 	if !bytes.Equal(edited, stored) {
 		t.Fatalf("the edited segment differs from the stored file:\n got % x\nwant % x", edited, stored)
 	}
+}
+
+// recoveredKeys returns the Ed25519 keys of seed 20..3f (key identifier 03ea0025...) and seed
+// 00..1f (key identifier 0b79463c...), the two recovered keys the corpus signs with.
+func recoveredKeys() (ed25519.PrivateKey, ed25519.PrivateKey) {
+	seed03ea := make([]byte, ed25519.SeedSize)
+	seed0b79 := make([]byte, ed25519.SeedSize)
+	for i := range seed03ea {
+		seed03ea[i] = byte(0x20 + i)
+		seed0b79[i] = byte(i)
+	}
+	return ed25519.NewKeyFromSeed(seed03ea), ed25519.NewKeyFromSeed(seed0b79)
 }
 
 // signatureValueAfter returns the 64-byte value that follows prefix in data, failing the test
