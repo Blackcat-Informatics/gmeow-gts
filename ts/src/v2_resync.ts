@@ -9,7 +9,7 @@ import {
     Decoder,
     HeaderError,
 } from "./v2_decoder.js";
-import { contextHash, type PayloadBudget } from "./v2_integrity.js";
+import { contextHash } from "./v2_integrity.js";
 
 /** The bytes a resync opener may span, and the distance a scan tests past a pattern. */
 export const RESYNC_MAX = 4096;
@@ -184,6 +184,12 @@ export function decodeResync(
     return decodeTail(cursor, offset, header, claimed);
 }
 
+/** The decoded-byte budget that a scan charges: both payload budgets of the reader satisfy it. */
+export interface ResyncBudget {
+    readonly totalRefused: boolean;
+    charge(length: bigint): bigint | undefined;
+}
+
 /** What a scan for a resync candidate finds. */
 export type Candidate =
     | { kind: "accepted"; offset: number; value: DecodedResync }
@@ -199,7 +205,7 @@ export class ResyncScanner {
     scan(
         start: number,
         end: number,
-        budget: PayloadBudget,
+        budget: ResyncBudget,
     ): Candidate | undefined {
         if (budget.totalRefused) return undefined;
         let next = Math.max(start, this.testedUntil);
