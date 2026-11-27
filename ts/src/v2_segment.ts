@@ -19,6 +19,8 @@ import {
 } from "./v2_closing.js";
 import {
     asFrameError,
+    readSignatures,
+    type Signature,
     checkTypeLength,
     decodeEnvelope,
     FrameError,
@@ -31,6 +33,11 @@ import {
     type CommitReport,
     type IndexCheck,
 } from "./v2_prefix.js";
+import {
+    verifySignature,
+    type HeldKey,
+    type SignatureResult,
+} from "./v2_signature.js";
 import { fieldOffsets, inspectLink, malformedPayload } from "./v2_inspect.js";
 import { Decoder } from "./v2_decoder.js";
 import { decodeHeader, REGISTRY_VERSION, type Header } from "./v2_header.js";
@@ -72,6 +79,8 @@ export interface WireFrame {
     payload: PayloadCheck;
     /** Whether the frame is of a type a later registry introduces and the fold stops at. */
     unknownTypeStopsFold: boolean;
+    /** The result of each signature of the frame, empty when the frame is not eligible. */
+    signatures: SignatureResult[];
 }
 
 /** An item of a segment and the bytes it covers. */
@@ -300,6 +309,7 @@ function observeFrame(
         wire: {
             position,
             unknownTypeStopsFold,
+            signatures: [],
             frameType,
             transparent: fields.transparent,
             envelope,
@@ -327,13 +337,86 @@ function emptySegment(opener: SegmentOpener): WireSegment {
     };
 }
 
+/**
+ * The signature records of a frame item and the encoded size of its `signatures` element,
+ * or absent when the element is outside the grammar of P6 section 1.
+ */
+function signatureRecords(
+    data: Uint8Array,
+    item: WireItem,
+    frame: WireFrame,
+    newer: boolean,
+): { records: readonly Signature[]; size: number } | undefined {
+    if ("frame" in frame.envelope) {
+        return {
+            records: frame.envelope.frame.signatures,
+            size: frame.envelope.frame.encodedSignaturesSize,
+        };
+    }
+    const itemData = data.subarray(0, item.end);
+    try {
+        const offsets = fieldOffsets(itemData, item.offset);
+        const records = readSignatures(
+            new Decoder(itemData, offsets[9]),
+            newer,
+        );
+        return { records, size: offsets[10] - offsets[9] };
+    } catch (error) {
+        if (error instanceof HeaderError || error instanceof FramingError) {
+            return undefined;
+        }
+        throw error;
+    }
+}
+
+/**
+ * Verifies each signature of each eligible frame against the opener's identifier `h0` (P6
+ * section 6.2). A frame is eligible when it is ordinary, has an effective identifier, has a
+ * `signatures` element in grammar and that element is within `storedLimit`; its other fields
+ * do not matter.
+ */
+function verifySignatures(
+    segment: WireSegment,
+    data: Uint8Array,
+    h0: Uint8Array,
+    storedLimit: bigint,
+    keys: readonly HeldKey[],
+    newer: boolean,
+): void {
+    for (const frame of segment.frames) {
+        const identifier = frame.transparent
+            ? undefined
+            : frame.link.effectiveIdentifier;
+        if (identifier === undefined) continue;
+        const found = signatureRecords(
+            data,
+            segment.items[frame.position],
+            frame,
+            newer,
+        );
+        if (found === undefined || BigInt(found.size) > storedLimit) continue;
+        frame.signatures = found.records.map((record) =>
+            verifySignature(record, h0, identifier, keys),
+        );
+    }
+}
+
 function finish(
     segment: WireSegment,
     data: Uint8Array,
     capacity: ReadCapacity,
+    keys: readonly HeldKey[],
 ): void {
     const { registryVersion, identifier } = headerOf(segment.opener);
     if (identifier === undefined) return;
+    verifySignatures(
+        segment,
+        data,
+        identifier,
+        capacity.storedBytesPerFrame,
+        keys,
+        registryVersion > REGISTRY_VERSION,
+    );
     const items: ClosingItem[] = segment.items.map((item) => ({
         kind:
             item.kind === "offsets" || item.kind === "locator"
@@ -479,6 +562,7 @@ function recoverLostItem(
 export function readWire(
     data: Uint8Array,
     capacity: ReadCapacity = DEFAULT_CAPACITY,
+    keys: readonly HeldKey[] = [],
 ): WireRead {
     const result: WireRead = {
         segments: [],
@@ -603,7 +687,7 @@ export function readWire(
                 data,
             );
             if (recovered !== undefined) {
-                finish(segment, data, capacity);
+                finish(segment, data, capacity, keys);
                 result.segments.push(segment);
                 segment = recoveredSegment(recovered.offset, recovered);
                 continue;
@@ -626,7 +710,7 @@ export function readWire(
                 break;
             }
             segment.endOffset = next.offset;
-            finish(segment, data, capacity);
+            finish(segment, data, capacity, keys);
             result.segments.push(segment);
             segment = emptySegment(begun);
             segment.items.push({
@@ -653,7 +737,7 @@ export function readWire(
         walk.limitOffset === undefined
             ? undefined
             : { kind: "item_limit", offset: walk.limitOffset };
-    finish(segment, data, capacity);
+    finish(segment, data, capacity, keys);
     result.segments.push(segment);
     return result;
 }
