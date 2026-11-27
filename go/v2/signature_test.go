@@ -407,3 +407,69 @@ func TestAValidRecordBesideAnUnheldKeyIsStillValid(t *testing.T) {
 		t.Fatalf("second result %v, want valid", outcomes[1])
 	}
 }
+
+// vectorKey returns the public key that the vector's recorded read result carries under
+// `keyID`: the bytes that follow the identifier and the algorithm code in [id, algorithm, key].
+func vectorKey(t *testing.T, name string) []byte {
+	t.Helper()
+	var file struct {
+		Cases []struct {
+			ReadResult string `json:"read_result"`
+			Result     struct {
+				Result []any `json:"result"`
+			} `json:"result"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(vectorBytes(t, name+".json"), &file); err != nil {
+		t.Fatal(err)
+	}
+	data := mustHex(t, file.Cases[0].ReadResult)
+	keyID, _ := file.Cases[0].Result.Result[3].(string)
+	id := mustHex(t, keyID)
+	// The identifier occurs in several lists; the key record is the one whose algorithm code is
+	// followed by a byte string.
+	for from := 0; ; {
+		offset := bytes.Index(data[from:], id)
+		if offset < 0 {
+			t.Fatalf("%s: no key record for identifier %s", name, keyID)
+		}
+		rest := data[from+offset+len(id):]
+		from += offset + 1
+		if len(rest) < 4 || rest[0] > 0x17 {
+			continue
+		}
+		switch rest[1] {
+		case 0x58:
+			return rest[3 : 3+int(rest[2])]
+		case 0x59:
+			return rest[4 : 4+(int(rest[2])<<8|int(rest[3]))]
+		}
+	}
+}
+
+// TestHeldKeysOutsideTheirEncodingGiveTheCorpusOutcomes: a held Ed25519 key that is not a
+// canonical, on-curve point, or a small-order key beside a bad nonce or scalar, or a composite
+// key of the wrong length, gives the outcome the corpus records for it.
+func TestHeldKeysOutsideTheirEncodingGiveTheCorpusOutcomes(t *testing.T) {
+	cases := []struct {
+		name      string
+		algorithm uint64
+		reason    SignatureReason
+	}{
+		{"ed25519-key-non-canonical-sign", Ed25519Algorithm, ReasonEquationFailed},
+		{"ed25519-key-non-canonical-y", Ed25519Algorithm, ReasonEquationFailed},
+		{"ed25519-key-off-curve", Ed25519Algorithm, ReasonEquationFailed},
+		{"ed25519-order-key-nonce", Ed25519Algorithm, ReasonSmallOrderKey},
+		{"ed25519-order-scalar-key", Ed25519Algorithm, ReasonNonCanonicalScalar},
+		{"composite-key-1983", CompositeAlgorithm, ReasonValueLength},
+		{"composite-key-1985", CompositeAlgorithm, ReasonValueLength},
+	}
+	for _, c := range cases {
+		key := vectorKey(t, c.name)
+		held := HeldKey{KeyID: KeyIdentifier(c.algorithm, key), Algorithm: c.algorithm, PublicKey: key}
+		outcomes := frameSignatureOutcomes(t, c.name+".bin", []HeldKey{held})
+		if len(outcomes) != 1 || outcomes[0] != [2]string{"invalid", string(c.reason)} {
+			t.Fatalf("%s: got %v, want invalid %s", c.name, outcomes, c.reason)
+		}
+	}
+}
