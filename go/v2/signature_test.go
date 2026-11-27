@@ -408,8 +408,8 @@ func TestAValidRecordBesideAnUnheldKeyIsStillValid(t *testing.T) {
 	}
 }
 
-// vectorKey returns the public key that the vector's recorded read result carries under
-// `keyID`: the bytes that follow the identifier and the algorithm code in [id, algorithm, key].
+// vectorKey returns the public key that the vector's recorded read result carries for the key
+// of its recorded outcome: the bytes after the identifier and algorithm code in [id, algorithm, key].
 func vectorKey(t *testing.T, name string) []byte {
 	t.Helper()
 	var file struct {
@@ -423,8 +423,22 @@ func vectorKey(t *testing.T, name string) []byte {
 	if err := json.Unmarshal(vectorBytes(t, name+".json"), &file); err != nil {
 		t.Fatal(err)
 	}
-	data := mustHex(t, file.Cases[0].ReadResult)
 	keyID, _ := file.Cases[0].Result.Result[3].(string)
+	return vectorKeyOf(t, name, keyID)
+}
+
+// vectorKeyOf is vectorKey for an identifier that the recorded read result of `name` carries.
+func vectorKeyOf(t *testing.T, name, keyID string) []byte {
+	t.Helper()
+	var file struct {
+		Cases []struct {
+			ReadResult string `json:"read_result"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(vectorBytes(t, name+".json"), &file); err != nil {
+		t.Fatal(err)
+	}
+	data := mustHex(t, file.Cases[0].ReadResult)
 	id := mustHex(t, keyID)
 	// The identifier occurs in several lists; the key record is the one whose algorithm code is
 	// followed by a byte string.
@@ -470,6 +484,33 @@ func TestHeldKeysOutsideTheirEncodingGiveTheCorpusOutcomes(t *testing.T) {
 		outcomes := frameSignatureOutcomes(t, c.name+".bin", []HeldKey{held})
 		if len(outcomes) != 1 || outcomes[0] != [2]string{"invalid", string(c.reason)} {
 			t.Fatalf("%s: got %v, want invalid %s", c.name, outcomes, c.reason)
+		}
+	}
+}
+
+// TestSignatureListOrderIsAscendingAndEachRecordValid: the frame of three records of three
+// keys, listed in ascending bytewise order, gives three valid results in that order. The key
+// of the first record is carried by the read results of the other frame vectors.
+func TestSignatureListOrderIsAscendingAndEachRecordValid(t *testing.T) {
+	var file struct {
+		Cases []struct {
+			Result map[string][][]any `json:"result"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(vectorBytes(t, "sig-list-order.json"), &file); err != nil {
+		t.Fatal(err)
+	}
+	rows := file.Cases[0].Result["ABC"]
+	first, _ := rows[0][3].(string)
+	key := vectorKeyOf(t, "sig-list-independence", first)
+	keys := append(heldReproductionKeys(t), HeldKey{KeyID: KeyIdentifier(Ed25519Algorithm, key), Algorithm: Ed25519Algorithm, PublicKey: key})
+	outcomes := frameSignatureOutcomes(t, "sig-list-order.bin", keys)
+	if len(outcomes) != len(rows) {
+		t.Fatalf("got %d results %v, want %d", len(outcomes), outcomes, len(rows))
+	}
+	for i, outcome := range outcomes {
+		if outcome != [2]string{string(SignatureValid), ""} {
+			t.Fatalf("result %d is %v, want valid", i, outcome)
 		}
 	}
 }
