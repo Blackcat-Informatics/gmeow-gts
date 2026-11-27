@@ -304,3 +304,48 @@ func TestEd25519SmallOrderKeysAreRefused(t *testing.T) {
 		}
 	}
 }
+
+// frameSignatureOutcomes returns each signature result of each frame of the vector, in order.
+func frameSignatureOutcomes(t *testing.T, name string, keys []HeldKey) [][2]string {
+	t.Helper()
+	result := ReadWire(vectorBytes(t, name), DefaultReadCapacity(), keys...)
+	var outcomes [][2]string
+	for i := range result.Segments {
+		for _, item := range result.Segments[i].Items {
+			if item.Frame == nil {
+				continue
+			}
+			for _, signature := range item.Frame.Signatures {
+				outcomes = append(outcomes, [2]string{string(signature.Status), string(signature.Reason)})
+			}
+		}
+	}
+	return outcomes
+}
+
+// TestEachRecordOfAFrameGetsItsOwnResult: a frame with one record of each algorithm, or two
+// records of one held key, gives one result per record, in the order the records are listed.
+func TestEachRecordOfAFrameGetsItsOwnResult(t *testing.T) {
+	keys := heldReproductionKeys(t)
+	valid := [2]string{string(SignatureValid), ""}
+	cases := []struct {
+		name string
+		want [][2]string
+	}{
+		{"sig-record-valid.bin", [][2]string{valid, valid}},
+		{"composite-hedged.both.bin", [][2]string{valid, valid}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := frameSignatureOutcomes(t, tc.name, keys)
+			if len(got) != len(tc.want) {
+				t.Fatalf("got %d results %v, want %d", len(got), got, len(tc.want))
+			}
+			for i := range got {
+				if got[i] != tc.want[i] {
+					t.Fatalf("result %d: got %v, want %v", i, got[i], tc.want[i])
+				}
+			}
+		})
+	}
+}
