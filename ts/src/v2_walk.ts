@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 //! The item walk of a v2 input: the boundaries of its items and the kind of each
-//! item (P1 sections 6.3 and 7). The recovery of a lost item is not part of this module.
+//! item (P1 sections 6.3 and 7). The walk also moves past a lost item to the resync item that recovers it.
 
 import {
     FramingError,
@@ -10,6 +10,12 @@ import {
     itemEnd,
     type FramingReason,
 } from "./v2_framing.js";
+import {
+    RESYNC_MAX,
+    type Candidate,
+    type ResyncBudget,
+    type ResyncScanner,
+} from "./v2_resync.js";
 
 /** The reasons an item of a segment is malformed (P2 section 4.7, `malformed_value`). */
 export type MalformedReason =
@@ -71,6 +77,44 @@ export class ItemWalk {
     /** The next boundary, consuming it. */
     take(): Boundary | undefined {
         return this.held.shift() ?? this.delimitTo(this.data.length);
+    }
+
+    /**
+     * Scans for a resync candidate from `start` up to the end of the lost item `lost`. An
+     * accepted candidate moves the walk to the first byte after it and drops the boundaries
+     * held past it; the items it skips are not counted.
+     */
+    recover(
+        scanner: ResyncScanner,
+        start: number,
+        lost: Boundary,
+        budget: ResyncBudget,
+    ): Candidate | undefined {
+        if (lost.failure === undefined && this.peek() !== undefined) {
+            const end = Math.min(lost.end + RESYNC_MAX, this.data.length);
+            for (
+                let next = this.delimitTo(end);
+                next !== undefined;
+                next = this.delimitTo(end)
+            ) {
+                this.held.push(next);
+            }
+        }
+        if (this.count === this.limit) return undefined;
+        const outcome = scanner.scan(start, lost.end, budget);
+        if (outcome?.kind === "accepted") {
+            this.count += 1;
+            this.held.length = 0;
+            this.offset = outcome.value.nextOffset;
+        }
+        return outcome;
+    }
+
+    /** The offset of the first item that the item limit left unread, if it did. */
+    get limitOffset(): number | undefined {
+        return this.count === this.limit && this.offset < this.data.length
+            ? this.offset
+            : undefined;
     }
 
     /** The next boundary, not consumed. */
