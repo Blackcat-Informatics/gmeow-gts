@@ -346,3 +346,103 @@ fn composite_strict(
     };
     (!holds().unwrap_or(false)).then_some(SignatureReason::CompositePostQuantumFailed)
 }
+
+#[cfg(test)]
+mod composite_halves {
+    use ed25519_dalek::{Signer, SigningKey as Ed25519SigningKey};
+    use ml_dsa::{ExpandedSigningKey, MlDsa65, Seed};
+
+    use super::{
+        subject_message, verify_signature, HeldKey, HeldKeys, Signature, SignatureReason,
+        SignatureStatus, COMPOSITE, COMPOSITE_LABEL, COMPOSITE_PREFIX,
+    };
+    use sha2::{Digest, Sha512};
+
+    /// A composite signer of the tests: its ML-DSA-65 and Ed25519 keys and the composite public key.
+    struct Signer2 {
+        ml: ExpandedSigningKey<MlDsa65>,
+        ed: Ed25519SigningKey,
+        public_key: Vec<u8>,
+    }
+
+    fn signer(seed: u8) -> Signer2 {
+        let ml = ExpandedSigningKey::<MlDsa65>::from_seed(&Seed::from([seed; 32]));
+        let ed = Ed25519SigningKey::from_bytes(&[seed.wrapping_add(0x20); 32]);
+        let mut public_key = ml.verifying_key().encode().as_slice().to_vec();
+        public_key.extend_from_slice(&ed.verifying_key().to_bytes());
+        Signer2 { ml, ed, public_key }
+    }
+
+    /// The ML-DSA and Ed25519 halves of a composite of the subject (P6 4.2).
+    fn halves(signer: &Signer2, h0: &[u8; 32], frame: &[u8; 32]) -> (Vec<u8>, Vec<u8>) {
+        let key_id = HeldKey::identifier(COMPOSITE, &signer.public_key);
+        let subject = Signature {
+            algorithm: COMPOSITE,
+            key_id: &key_id,
+            value: &[],
+        };
+        let mut representative = Vec::with_capacity(127);
+        representative.extend_from_slice(COMPOSITE_PREFIX);
+        representative.extend_from_slice(COMPOSITE_LABEL);
+        representative.push(0);
+        representative.extend_from_slice(&Sha512::digest(subject_message(&subject, h0, frame)));
+        let ml = signer
+            .ml
+            .sign_deterministic(&representative, COMPOSITE_LABEL)
+            .expect("ML-DSA signs the representative")
+            .encode();
+        let ed = signer.ed.sign(&representative).to_bytes().to_vec();
+        (ml.as_slice().to_vec(), ed)
+    }
+
+    fn held(signer: &Signer2) -> HeldKey {
+        HeldKey {
+            key_id: HeldKey::identifier(COMPOSITE, &signer.public_key),
+            algorithm: COMPOSITE,
+            public_key: signer.public_key.clone(),
+        }
+    }
+
+    /// P6-26: when the halves of two valid composite signatures over one subject are swapped,
+    /// the classical half refuses the composite first, and the composite is never valid.
+    #[test]
+    fn swapped_halves_of_two_valid_composites_are_refused_by_the_classical_half() {
+        let (h0, frame) = ([1_u8; 32], [2_u8; 32]);
+        let first = signer(1);
+        let second = signer(2);
+        let keys = HeldKeys::new([held(&first), held(&second)]);
+        let first_id = HeldKey::identifier(COMPOSITE, &first.public_key);
+        let (first_ml, first_ed) = halves(&first, &h0, &frame);
+        let (_, second_ed) = halves(&second, &h0, &frame);
+
+        let valid = [first_ml.clone(), first_ed].concat();
+        let result = verify_signature(
+            &Signature {
+                algorithm: COMPOSITE,
+                key_id: &first_id,
+                value: &valid,
+            },
+            &h0,
+            &frame,
+            &keys,
+        );
+        assert_eq!(result.status, SignatureStatus::Valid);
+
+        let swapped = [first_ml, second_ed].concat();
+        let result = verify_signature(
+            &Signature {
+                algorithm: COMPOSITE,
+                key_id: &first_id,
+                value: &swapped,
+            },
+            &h0,
+            &frame,
+            &keys,
+        );
+        assert_eq!(result.status, SignatureStatus::Invalid);
+        assert_eq!(
+            result.reason,
+            Some(SignatureReason::CompositeClassicalFailed)
+        );
+    }
+}
