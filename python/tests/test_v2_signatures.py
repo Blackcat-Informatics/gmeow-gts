@@ -9,11 +9,12 @@ import cbor2
 import pytest
 
 from gts.v2.authentication import AuthenticationFrame, authenticate_segment
-from gts.v2.frame import decode_frame
+from gts.v2.frame import Signature, decode_frame
 from gts.v2.link import FrameLink
 from gts.v2.range import RangeAccumulator
 from gts.v2.signatures import (
     HeldKey,
+    SignatureOutcome,
     SignatureVerifier,
     key_identifier,
     signature_message,
@@ -189,3 +190,90 @@ def test_signature_coverage_and_authentication(name: str) -> None:
             ] == expected
             assert result.authenticated_frames == segment[12]
             assert result.authenticity == _AUTHENTICITY[segment[9]]
+
+
+def _composite_test_key(private: bytes):
+    """The ML-DSA-65 key, the Ed25519 key and the composite public key of a seed."""
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
+
+    ml = MLDSA65PrivateKey.from_seed_bytes(private[:32])
+    ed = Ed25519PrivateKey.from_private_bytes(private[32:])
+    public = ml.public_key().public_bytes_raw() + ed.public_key().public_bytes_raw()
+    return ml, ed, public
+
+
+def _composite_halves(key, opener: bytes, frame: bytes) -> tuple[bytes, bytes]:
+    """The ML-DSA and Ed25519 halves of a composite of the subject (P6 4.2)."""
+    from hashlib import sha512
+
+    ml, ed, public = key
+    message = signature_message(2, key_identifier(2, public), opener, frame)
+    representative = (
+        b"CompositeAlgorithmSignatures2025"
+        + b"COMPSIG-MLDSA65-Ed25519-SHA512"
+        + b"\x00"
+        + sha512(message).digest()
+    )
+    return (
+        ml.sign(representative, b"COMPSIG-MLDSA65-Ed25519-SHA512"),
+        ed.sign(representative),
+    )
+
+
+def _composite_subject() -> tuple[bytes, bytes, bytes]:
+    case = json.loads((_VECTORS / "sign-composite-reproduce.json").read_text())[
+        "cases"
+    ][0]
+    private = bytes.fromhex(case["signer"]["private_key"])
+    opener = bytes.fromhex(case["subject_fields"]["header_identifier"])
+    frame = bytes.fromhex(case["subject_fields"]["frame_identifier"])
+    return private, opener, frame
+
+
+def test_composite_halves_of_two_signatures_do_not_combine() -> None:
+    """Swapping the ML-DSA half of one valid signature with the Ed25519 half of another
+    gives a composite that the classical half refuses first (P6-26)."""
+    private, opener, frame = _composite_subject()
+    first = _composite_test_key(private)
+    second = _composite_test_key(bytes([0x80] * 32 + [0xA0] * 32))
+    first_id = key_identifier(2, first[2])
+    second_id = key_identifier(2, second[2])
+    verifier = SignatureVerifier(
+        held_keys=[
+            HeldKey(first_id, 2, first[2]),
+            HeldKey(second_id, 2, second[2]),
+        ]
+    )
+    first_ml, first_ed = _composite_halves(first, opener, frame)
+    _, second_ed = _composite_halves(second, opener, frame)
+    valid = Signature(2, first_id, memoryview(first_ml + first_ed))
+    assert verifier.verify(valid, opener, frame).status == "valid"
+    swapped = Signature(2, first_id, memoryview(first_ml + second_ed))
+    assert verifier.verify(swapped, opener, frame) == SignatureOutcome(
+        "invalid", "composite_classical_failed"
+    )
+
+
+def test_composite_is_not_verified_by_one_component_key() -> None:
+    """The composite is refused as unverified without its own key, and as a key mismatch
+    beside its identifier with the Ed25519 bytes (P6-33, key-mismatch-bytes)."""
+    private, opener, frame = _composite_subject()
+    key = _composite_test_key(private)
+    composite_id = key_identifier(2, key[2])
+    ml_half, ed_half = _composite_halves(key, opener, frame)
+    signature = Signature(2, composite_id, memoryview(ml_half + ed_half))
+    ed_public = key[1].public_key().public_bytes_raw()
+    ed_id = key_identifier(1, ed_public)
+    assert (
+        SignatureVerifier(held_keys=[HeldKey(composite_id, 2, key[2])])
+        .verify(signature, opener, frame)
+        .status
+        == "valid"
+    )
+    assert SignatureVerifier(held_keys=[HeldKey(ed_id, 1, ed_public)]).verify(
+        signature, opener, frame
+    ) == SignatureOutcome("unverified", "key_not_held")
+    assert SignatureVerifier(held_keys=[HeldKey(composite_id, 2, ed_public)]).verify(
+        signature, opener, frame
+    ) == SignatureOutcome("invalid", "key_mismatch")

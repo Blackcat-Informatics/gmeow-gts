@@ -5,12 +5,15 @@ package v2
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -512,5 +515,114 @@ func TestSignatureListOrderIsAscendingAndEachRecordValid(t *testing.T) {
 		if outcome != [2]string{string(SignatureValid), ""} {
 			t.Fatalf("result %d is %v, want valid", i, outcome)
 		}
+	}
+}
+
+// compositeTestKey is a composite signer of the tests: its ML-DSA-65 and Ed25519 halves and the
+// composite public key that concatenates their encodings.
+type compositeTestKey struct {
+	ml        *mldsa.PrivateKey
+	ed        ed25519.PrivateKey
+	publicKey []byte
+}
+
+func newCompositeTestKey(t *testing.T, private []byte) compositeTestKey {
+	t.Helper()
+	ml, err := mldsa.NewPrivateKey(mldsa.MLDSA65(), private[:32])
+	if err != nil {
+		t.Fatal(err)
+	}
+	ed := ed25519.NewKeyFromSeed(private[32:])
+	edPublic := ed.Public().(ed25519.PublicKey)
+	return compositeTestKey{ml: ml, ed: ed, publicKey: append(bytes.Clone(ml.PublicKey().Bytes()), edPublic...)}
+}
+
+// halves returns the ML-DSA half and the Ed25519 half of a composite signature of the subject
+// under the key, each over the same representative M' of the subject (P6 4.2).
+func (k compositeTestKey) halves(t *testing.T, h0, frame Digest) (mlHalf, edHalf []byte) {
+	t.Helper()
+	record := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: KeyIdentifier(CompositeAlgorithm, k.publicKey)}
+	subject := SignedMessage(record, h0, frame)
+	representative := compositeRepresentative(subject[:])
+	mlHalf, err := k.ml.SignDeterministic(representative, &mldsa.Options{Context: string(compositeLabel)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return mlHalf, ed25519.Sign(k.ed, representative)
+}
+
+// TestCompositeHalvesOfTwoSignaturesDoNotCombine: each half of a composite signature is
+// valid only under its own key. Swapping the ML-DSA half of one valid signature with the
+// Ed25519 half of another gives a composite that the classical half refuses first (P6-26).
+func TestCompositeHalvesOfTwoSignaturesDoNotCombine(t *testing.T) {
+	c := loadSignCase(t, "sign-composite-reproduce")
+	var raw struct {
+		Cases []struct {
+			Signer struct {
+				PrivateKey string `json:"private_key"`
+			} `json:"signer"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(vectorBytes(t, "sign-composite-reproduce.json"), &raw); err != nil {
+		t.Fatal(err)
+	}
+	first := newCompositeTestKey(t, mustHex(t, raw.Cases[0].Signer.PrivateKey))
+	second := newCompositeTestKey(t, mustHex(t, strings.Repeat("80", 32)+strings.Repeat("a0", 32)))
+	h0 := mustDigest(t, c.SubjectFields.HeaderIdentifier)
+	frame := mustDigest(t, c.SubjectFields.FrameIdentifier)
+
+	firstML, firstEd := first.halves(t, h0, frame)
+	secondML, secondEd := second.halves(t, h0, frame)
+	firstRecord := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: KeyIdentifier(CompositeAlgorithm, first.publicKey), Value: append(bytes.Clone(firstML), firstEd...)}
+	secondRecord := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: KeyIdentifier(CompositeAlgorithm, second.publicKey), Value: append(bytes.Clone(secondML), secondEd...)}
+	keys := []HeldKey{
+		{KeyID: firstRecord.KeyID, Algorithm: CompositeAlgorithm, PublicKey: first.publicKey},
+		{KeyID: secondRecord.KeyID, Algorithm: CompositeAlgorithm, PublicKey: second.publicKey},
+	}
+	if got := VerifySignature(firstRecord, h0, frame, keys); got.Status != SignatureValid {
+		t.Fatalf("first signature: got %+v, want valid", got)
+	}
+	if got := VerifySignature(secondRecord, h0, frame, keys); got.Status != SignatureValid {
+		t.Fatalf("second signature: got %+v, want valid", got)
+	}
+	swapped := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: firstRecord.KeyID, Value: append(bytes.Clone(firstML), secondEd...)}
+	if got := VerifySignature(swapped, h0, frame, keys); got.Status != SignatureInvalid || got.Reason != ReasonCompositeClassical {
+		t.Fatalf("swapped halves: got %+v, want invalid %s", got, ReasonCompositeClassical)
+	}
+}
+
+// TestCompositeIsNotVerifiedByOneComponentKey: a composite signature is not reported valid
+// from one of its halves. Held under the Ed25519 key of its own half alone, it has no key of
+// its identifier and is unverified; held under its own identifier with the Ed25519 bytes, the
+// key is inconsistent and refused as a mismatch (P6-33, key-mismatch-bytes).
+func TestCompositeIsNotVerifiedByOneComponentKey(t *testing.T) {
+	c := loadSignCase(t, "sign-composite-reproduce")
+	var raw struct {
+		Cases []struct {
+			Signer struct {
+				PrivateKey string `json:"private_key"`
+			} `json:"signer"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(vectorBytes(t, "sign-composite-reproduce.json"), &raw); err != nil {
+		t.Fatal(err)
+	}
+	key := newCompositeTestKey(t, mustHex(t, raw.Cases[0].Signer.PrivateKey))
+	h0 := mustDigest(t, c.SubjectFields.HeaderIdentifier)
+	frame := mustDigest(t, c.SubjectFields.FrameIdentifier)
+	mlHalf, edHalf := key.halves(t, h0, frame)
+	record := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: KeyIdentifier(CompositeAlgorithm, key.publicKey), Value: append(bytes.Clone(mlHalf), edHalf...)}
+	if got := VerifySignature(record, h0, frame, []HeldKey{{KeyID: record.KeyID, Algorithm: CompositeAlgorithm, PublicKey: key.publicKey}}); got.Status != SignatureValid {
+		t.Fatalf("with the composite key: got %+v, want valid", got)
+	}
+
+	edPublic := key.ed.Public().(ed25519.PublicKey)
+	edOnly := HeldKey{KeyID: KeyIdentifier(Ed25519Algorithm, edPublic), Algorithm: Ed25519Algorithm, PublicKey: edPublic}
+	if got := VerifySignature(record, h0, frame, []HeldKey{edOnly}); got.Status != SignatureUnverified || got.Reason != ReasonKeyNotHeld {
+		t.Fatalf("with the Ed25519 key alone: got %+v, want unverified %s", got, ReasonKeyNotHeld)
+	}
+	wrongBytes := HeldKey{KeyID: record.KeyID, Algorithm: CompositeAlgorithm, PublicKey: edPublic}
+	if got := VerifySignature(record, h0, frame, []HeldKey{wrongBytes}); got.Reason != ReasonKeyMismatch {
+		t.Fatalf("composite key id with the Ed25519 bytes: got %+v, want %s", got, ReasonKeyMismatch)
 	}
 }

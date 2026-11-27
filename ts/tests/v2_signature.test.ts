@@ -4,6 +4,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import * as ed from "@noble/ed25519";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
+import { sha512 } from "@noble/hashes/sha2.js";
 import {
     COMPOSITE_ALGORITHM,
     ED25519_ALGORITHM,
@@ -13,6 +16,13 @@ import {
     type HeldKey,
     type SignatureRecord,
 } from "../src/v2_signature.js";
+
+const COMPOSITE_PREFIX = new TextEncoder().encode(
+    "CompositeAlgorithmSignatures2025",
+);
+const COMPOSITE_LABEL = new TextEncoder().encode(
+    "COMPSIG-MLDSA65-Ed25519-SHA512",
+);
 
 const P6 = new URL("../../../vectors/v2/P6/", import.meta.url);
 const hex = (value: string): Uint8Array =>
@@ -165,5 +175,127 @@ test("an Ed25519 signature over a different subject fails the equation", () => {
     assert.equal(
         ed25519Outcome(ed25519Record, new Uint8Array(32)).reason,
         "equation_failed",
+    );
+});
+
+// The two cases of P6 that no corpus vector holds yet: the halves of two valid composite
+// signatures combined, and a composite held under one of its component keys only.
+function compositeTestKey(privateKey: Uint8Array): {
+    publicKey: Uint8Array;
+    mldsaSecret: Uint8Array;
+    ed25519Secret: Uint8Array;
+} {
+    const { publicKey: mldsaPublic, secretKey } = ml_dsa65.keygen(
+        privateKey.subarray(0, 32),
+    );
+    const ed25519Public = ed.getPublicKey(privateKey.subarray(32));
+    return {
+        publicKey: new Uint8Array([...mldsaPublic, ...ed25519Public]),
+        mldsaSecret: secretKey,
+        ed25519Secret: privateKey.subarray(32),
+    };
+}
+
+function compositeHalves(
+    key: ReturnType<typeof compositeTestKey>,
+    h0Value: Uint8Array,
+    frame: Uint8Array,
+): { mldsa: Uint8Array; ed25519: Uint8Array } {
+    const subject = signatureSubject(
+        {
+            algorithm: COMPOSITE_ALGORITHM,
+            keyId: heldKeyIdentifier(COMPOSITE_ALGORITHM, key.publicKey),
+            value: new Uint8Array(),
+        },
+        h0Value,
+        frame,
+    );
+    const representative = new Uint8Array([
+        ...COMPOSITE_PREFIX,
+        ...COMPOSITE_LABEL,
+        0,
+        ...sha512(subject),
+    ]);
+    return {
+        mldsa: ml_dsa65.sign(representative, key.mldsaSecret, {
+            context: COMPOSITE_LABEL,
+            extraEntropy: false,
+        }),
+        ed25519: ed.sign(representative, key.ed25519Secret),
+    };
+}
+
+test("the halves of two valid composite signatures do not combine", () => {
+    const first = compositeTestKey(hex(signer.signer.private_key));
+    const second = compositeTestKey(hex("80".repeat(32) + "a0".repeat(32)));
+    const firstId = heldKeyIdentifier(COMPOSITE_ALGORITHM, first.publicKey);
+    const secondId = heldKeyIdentifier(COMPOSITE_ALGORITHM, second.publicKey);
+    const keys: HeldKey[] = [
+        {
+            keyId: firstId,
+            algorithm: COMPOSITE_ALGORITHM,
+            publicKey: first.publicKey,
+        },
+        {
+            keyId: secondId,
+            algorithm: COMPOSITE_ALGORITHM,
+            publicKey: second.publicKey,
+        },
+    ];
+    const firstHalves = compositeHalves(first, h0, frameIdentifier);
+    const secondHalves = compositeHalves(second, h0, frameIdentifier);
+    const valid = {
+        algorithm: COMPOSITE_ALGORITHM,
+        keyId: firstId,
+        value: new Uint8Array([...firstHalves.mldsa, ...firstHalves.ed25519]),
+    };
+    assert.equal(
+        verifySignature(valid, h0, frameIdentifier, keys).status,
+        "valid",
+    );
+    const swapped = {
+        algorithm: COMPOSITE_ALGORITHM,
+        keyId: firstId,
+        value: new Uint8Array([...firstHalves.mldsa, ...secondHalves.ed25519]),
+    };
+    const outcome = verifySignature(swapped, h0, frameIdentifier, keys);
+    assert.equal(outcome.status, "invalid");
+    assert.equal(outcome.reason, "composite_classical_failed");
+});
+
+test("a composite is not verified under one of its component keys", () => {
+    const key = compositeTestKey(hex(signer.signer.private_key));
+    const halves = compositeHalves(key, h0, frameIdentifier);
+    const record: SignatureRecord = {
+        algorithm: COMPOSITE_ALGORITHM,
+        keyId: heldKeyIdentifier(COMPOSITE_ALGORITHM, key.publicKey),
+        value: new Uint8Array([...halves.mldsa, ...halves.ed25519]),
+    };
+    const edPublic = ed.getPublicKey(key.ed25519Secret);
+    const edKeyId = heldKeyIdentifier(ED25519_ALGORITHM, edPublic);
+    assert.deepEqual(
+        verifySignature(record, h0, frameIdentifier, [
+            {
+                keyId: edKeyId,
+                algorithm: ED25519_ALGORITHM,
+                publicKey: edPublic,
+            },
+        ]),
+        {
+            status: "unverified",
+            reason: "key_not_held",
+            algorithm: COMPOSITE_ALGORITHM,
+            keyId: record.keyId,
+        },
+    );
+    assert.equal(
+        verifySignature(record, h0, frameIdentifier, [
+            {
+                keyId: record.keyId,
+                algorithm: COMPOSITE_ALGORITHM,
+                publicKey: edPublic,
+            },
+        ]).reason,
+        "key_mismatch",
     );
 });
