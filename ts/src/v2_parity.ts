@@ -10,10 +10,14 @@ import { Decoder, HeaderError } from "./v2_decoder.js";
 import { FramingError, head } from "./v2_framing.js";
 
 type Head = ReturnType<typeof head>;
-import type { Frame } from "./v2_frame.js";
-import { contextHashParts } from "./v2_integrity.js";
+import { decodeParityCandidate, FrameError, type Frame } from "./v2_frame.js";
+import {
+    contextHash,
+    contextHashParts,
+    frameIdentifier,
+} from "./v2_integrity.js";
 import type { LinkState } from "./v2_link.js";
-import type { PayloadState } from "./v2_payload.js";
+import type { PayloadBudget, PayloadState } from "./v2_payload.js";
 
 /** The largest span that one parity frame protects, in bytes (P5 section 6.6). */
 export const SPAN = 1n << 22n;
@@ -325,4 +329,114 @@ export function statesParityEnvelope(
         isPlainStorage(data, offsets[6]) &&
         isEmptyArray(data, offsets[9])
     );
+}
+
+/** The bytes that begin every parity frame: the array of eleven, the item kind, the frame type, `critical` false and `transparent` true. */
+const PREFIX = Uint8Array.of(0x8b, 0x02, 0x10, 0xf4, 0xf5);
+
+/** The first offset at or after `from` where the bytes of a parity envelope begin (P5 section 7.2). */
+export function nextPrefix(data: Uint8Array, from: number): number | undefined {
+    for (let at = from; at + PREFIX.length <= data.length; at++) {
+        if (PREFIX.every((byte, index) => data[at + index] === byte)) return at;
+    }
+    return undefined;
+}
+
+/** The inputs of a candidate test that come from the segment being read. */
+export interface ParityContext {
+    /** The identifier of the segment's opener. */
+    h0: Uint8Array;
+    /** The registry version of the segment. */
+    registry: bigint;
+    earlier: EarlierParity;
+}
+
+/** The outcome of the test of one parity candidate (P5 section 7.2, step 6). */
+export type ParityVerdict =
+    /** The candidate passes every part of the test; reading resumes at it. */
+    | { kind: "passed"; anchor: Uint8Array }
+    /** The candidate fails a part of the test, or the total refused it without a finding. */
+    | { kind: "failed" }
+    /** The charge of the candidate is the first that the total decoded length refuses. */
+    | { kind: "refused"; length: number; count: bigint };
+
+/** A parity candidate that the scan of a lost item found, or refused. */
+export type ParityCandidate =
+    | { kind: "parity"; offset: number; anchor: Uint8Array }
+    | { kind: "parity_refused"; offset: number; length: number; count: bigint };
+
+function checkDecodedPayload(frame: Frame): boolean {
+    return (
+        BigInt(frame.storedPayload.length) === frame.decodedLength &&
+        equal(
+            contextHash("gts2 payload", frame.storedPayload),
+            frame.payloadDigest,
+        )
+    );
+}
+
+/**
+ * Tests the parity candidate at `offset` by the four parts of P5 section 7.2, step 6. A
+ * candidate that passes is charged to `budget`, and that charge is not made again when the
+ * item is read.
+ */
+export function testParityCandidate(
+    data: Uint8Array,
+    offset: number,
+    segment: ParityContext,
+    budget: PayloadBudget,
+): ParityVerdict {
+    let frame: Frame;
+    try {
+        frame = decodeParityCandidate(data, offset, segment.registry).frame;
+    } catch (error) {
+        if (error instanceof FrameError) return { kind: "failed" };
+        throw error;
+    }
+    const record = readParityRecord(frame.content);
+    if (record === undefined) return { kind: "failed" };
+    const span = spanOf(record);
+    if (span === undefined || !segment.earlier.admits(record.first)) {
+        return { kind: "failed" };
+    }
+    const shape = shapeOf(span);
+    const expected = BigInt(shape.encodedLength);
+    if (
+        BigInt(frame.storedPayload.length) !== expected ||
+        frame.decodedLength !== expected
+    ) {
+        return { kind: "failed" };
+    }
+    if (
+        !equal(
+            frameIdentifier(record.anchor, frame.identityFields),
+            frame.identifier,
+        )
+    ) {
+        return { kind: "failed" };
+    }
+    const refusal = budget.chargeCandidate(expected, expected);
+    if (refusal !== undefined) {
+        if (refusal.kind === "frame" || refusal.count === undefined) {
+            return { kind: "failed" };
+        }
+        return {
+            kind: "refused",
+            length: frame.nextOffset - offset,
+            count: refusal.count,
+        };
+    }
+    if (
+        !checkDecodedPayload(frame) ||
+        !tableMatches(
+            frame.storedPayload,
+            shape,
+            segment.h0,
+            record.tableDigest,
+        )
+    ) {
+        return { kind: "failed" };
+    }
+    budget.prepay(expected);
+    return { kind: "passed", anchor: record.anchor };
 }
