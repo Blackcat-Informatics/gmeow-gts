@@ -34,7 +34,7 @@ func replaceOnce(t *testing.T, data, old, replacement []byte) []byte {
 // byte-edited into the stored values, which are not signatures: the first is zero, and the
 // second holds 00..3f, which the reader refuses as a non-canonical scalar. The identifiers do
 // not depend on signature values, so the edit changes no other byte.
-func TestCovNotValid(t *testing.T) {
+func TestCovNotValidIsWrittenByteForByte(t *testing.T) {
 	stored := vectorBytes(t, "cov-not-valid.bin")
 	frames := storedFrames(t, stored)
 	if len(frames) != 1 {
