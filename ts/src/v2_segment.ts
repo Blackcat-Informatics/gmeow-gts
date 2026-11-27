@@ -39,6 +39,12 @@ import {
     type SignatureResult,
 } from "./v2_signature.js";
 import { fieldOffsets, inspectLink, malformedPayload } from "./v2_inspect.js";
+import {
+    EarlierParity,
+    judgeParity,
+    statesParityEnvelope,
+    type ParityJudgement,
+} from "./v2_parity.js";
 import { Decoder } from "./v2_decoder.js";
 import { decodeHeader, REGISTRY_VERSION, type Header } from "./v2_header.js";
 import { frameIdentifier } from "./v2_integrity.js";
@@ -79,6 +85,8 @@ export interface WireFrame {
     payload: PayloadCheck;
     /** Whether the frame is of a type a later registry introduces and the fold stops at. */
     unknownTypeStopsFold: boolean;
+    /** The stage 1 judgement of a parity frame in order, absent for any other frame. */
+    judgement: ParityJudgement | undefined;
     /** The result of each signature of the frame, empty when the frame is not eligible. */
     signatures: SignatureResult[];
 }
@@ -98,6 +106,8 @@ export interface WireSegment {
     /** The identifier that the next frame is linked to. */
     head: Uint8Array | undefined;
     closing: ClosingFinding[];
+    /** The earlier parity frames of the segment, as condition 6 of P5 section 6.6 compares them. */
+    earlier: EarlierParity;
     /** The commit checks of the segment, or the claim that cannot be read. */
     commits: CommitReport | CommitReadError | undefined;
     /** The checks of the index frames of the segment. */
@@ -225,6 +235,7 @@ function observeFrame(
     registryVersion: bigint,
     walk: ItemWalk,
     budget: PayloadBudget,
+    parity: { h0: Uint8Array; earlier: EarlierParity } | undefined,
 ): { wire: WireFrame; malformed: boolean } {
     let decoded: { frame: Frame; lengthOffset: number } | undefined;
     let failure: FrameError | undefined;
@@ -305,10 +316,25 @@ function observeFrame(
             : data[(offsets ?? [])[1]] === 0xf5 &&
               (data[(offsets ?? [])[2]] === 0xf4 ||
                   data[(offsets ?? [])[2]] === 0xf5));
+    const judgement =
+        frameType === PARITY && parity !== undefined
+            ? judgeParity(
+                  {
+                      envelope: decoded?.frame,
+                      link: link.state,
+                      predecessor,
+                      payload: payload.state,
+                      h0: parity.h0,
+                      earlier: parity.earlier,
+                  },
+                  newer,
+              )
+            : undefined;
     return {
         wire: {
             position,
             unknownTypeStopsFold,
+            judgement,
             signatures: [],
             frameType,
             transparent: fields.transparent,
@@ -321,6 +347,37 @@ function observeFrame(
     };
 }
 
+/** The identifier of the segment's opener, absent when the opener has none. */
+function identifierOf(segment: WireSegment): Uint8Array | undefined {
+    return headerOf(segment.opener).identifier;
+}
+
+/**
+ * Records a parity frame for condition 6 of P5 section 6.6 when its link is not broken. The
+ * frame is read from its raw item, so a frame whose envelope fails elsewhere still counts.
+ */
+function rememberParity(
+    segment: WireSegment,
+    data: Uint8Array,
+    boundary: Boundary,
+    frame: WireFrame,
+    registryVersion: bigint,
+): void {
+    if (frame.frameType !== PARITY || frame.link.state === "broken") return;
+    let offsets: readonly number[];
+    try {
+        offsets = fieldOffsets(data.subarray(0, boundary.end), boundary.offset);
+    } catch (error) {
+        if (error instanceof FramingError) return;
+        throw error;
+    }
+    segment.earlier.remember(
+        data.subarray(offsets[3], offsets[4]),
+        registryVersion > REGISTRY_VERSION,
+        statesParityEnvelope(data, offsets),
+    );
+}
+
 function emptySegment(opener: SegmentOpener): WireSegment {
     const { identifier } = headerOf(opener);
     return {
@@ -329,6 +386,7 @@ function emptySegment(opener: SegmentOpener): WireSegment {
         frames: [],
         head: identifier,
         closing: [],
+        earlier: new EarlierParity(),
         commits: undefined,
         indexes: [],
         endOffset: 0,
@@ -649,6 +707,12 @@ export function readWire(
                         registryVersion,
                         walk,
                         budget,
+                        identifierOf(segment) === undefined
+                            ? undefined
+                            : {
+                                  h0: identifierOf(segment) as Uint8Array,
+                                  earlier: segment.earlier,
+                              },
                     );
                     frame = observed.wire;
                     lost = observed.malformed || frame.link.state === "broken";
@@ -724,6 +788,7 @@ export function readWire(
         if (frame !== undefined) {
             if (frame.link.effectiveIdentifier !== undefined)
                 segment.head = frame.link.effectiveIdentifier;
+            rememberParity(segment, data, next, frame, registryVersion);
             segment.frames.push(frame);
         }
         segment.items.push({
