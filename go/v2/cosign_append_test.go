@@ -155,8 +155,9 @@ func writeCapacitySegment(t *testing.T, stored []byte) []byte {
 
 // TestCosignAfterTornFilesAreDerivedFromWrittenSegments rebuilds the two damaged inputs of
 // P6/cosign-after-torn-nothing. The torn file is the written cosign-append-commit segment cut
-// inside the value of its last signature. The undelimitable file is the written capacity
-// segment followed by the single byte 0x1c, which starts no item.
+// inside the signature value of its first commit, which is the last value of the prefix H T Q C.
+// The undelimitable file is the written capacity segment followed by the single byte 0x1c,
+// which starts no item.
 func TestCosignAfterTornFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	const tornLength = 415
 	appended := writeAppendSegment(t, vectorBytes(t, "cosign-append-commit.bin"))
