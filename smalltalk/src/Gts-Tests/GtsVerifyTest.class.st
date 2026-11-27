@@ -239,12 +239,19 @@ GtsVerifyTest >> testV2MalformedIndexDoesNotReportPartialClaims [
 
 { #category : #private }
 GtsVerifyTest >> v2SignatureResults: case [
-	| decoded held verifier bytes header results |
+	| decoded held |
 	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
 	held := (decoded at: 6) second collect: [ :entry |
 		{ (GtsHex encode: entry first). entry second. entry third } ].
+	^ self v2SignatureResultsOf: (case at: 'input_file') held: held
+]
+
+{ #category : #private }
+GtsVerifyTest >> v2SignatureResultsOf: name held: held [
+	"The signature results of each frame of the P6 file `name`, read with the held keys given."
+	| verifier bytes header results |
 	verifier := GtsV2SignatureChecks held: held reversed, held.
-	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
+	bytes := ('/workspace/vectors/v2/P6/', name) asFileReference
 		binaryReadStreamDo: [ :stream | stream upToEnd ].
 	results := OrderedCollection new.
 	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
@@ -542,4 +549,17 @@ GtsVerifyTest >> testV2CompositeHalvesOfTwoValidSignaturesDoNotCombine [
 	self assert: (checks compositeFailureFor: value message: message publicKey: publicKey) isNil.
 	swapped := (value copyFrom: 1 to: 3309), (GtsHex decode: 'b904b9acfa7c6c9194fe0e754027fb95919fd0c604de640a0f0027de0fa877c298d2a55a54cb9a46e1f0774392c725d8003e8a6894efbc14a27755155a990e02').
 	self assert: (checks compositeFailureFor: swapped message: message publicKey: publicKey) equals: 'composite_classical_failed'
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2CompositeHeldUnderOneComponentKeyIsNotVerified [
+	"A composite is not verified from one of its halves: under the Ed25519 key of its own half it has no key of its identifier, and under its identifier with the Ed25519 bytes the key is inconsistent (P6-33)."
+	| json name publicKey edKey mismatch |
+	json := self jsonVectorAt: '/workspace/vectors/v2/P6/composite-honest.json'.
+	name := ((json at: 'cases') first) at: 'input_file'.
+	publicKey := GtsHex decode: '174553b456dddfc6908ecab1c101fe6ab21e2baa0617795b7d43a63482993fd5'.
+	edKey := { 'b9022e9133a94884b0a42a97fb0a59ee47d77837824da3323b7be9af27ee1133'. 1. publicKey }.
+	mismatch := { '84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301'. 2. publicKey }.
+	self assert: (self v2SignatureResultsOf: name held: { edKey }) equals: { { 'unverified'. 'key_not_held' } }.
+	self assert: (self v2SignatureResultsOf: name held: { mismatch }) equals: { { 'invalid'. 'key_mismatch' } }
 ]
