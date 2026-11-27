@@ -63,6 +63,8 @@ import {
     type Candidate,
     type DecodedResync,
 } from "./v2_resync.js";
+import type { ParityFinding, Patch } from "./v2_parity_repair.js";
+import { verifyParity } from "./v2_parity_repair.js";
 import { classify, ItemWalk, type Boundary, type ItemKind } from "./v2_walk.js";
 
 /** The opener of a segment: a header item, or a resync item that begins a segment. */
@@ -126,6 +128,10 @@ export interface WireSegment {
     framingFailure: FramingDamage | undefined;
     /** The candidate that the decoded-byte budget refused while recovering a lost item. */
     resyncRefusal: ResyncRefusal | undefined;
+    /** The parity findings of the segment, in input order. */
+    parityFindings: ParityFinding[];
+    /** The byte patches of the repairs that the segment accepts. */
+    parityPatches: Patch[];
 }
 
 /** Framing damage over a run of bytes. */
@@ -159,6 +165,8 @@ export interface WireRead {
     prefixFailure: FramingDamage | undefined;
     /** The candidate refused before any segment began. */
     resyncRefusal: ResyncRefusal | undefined;
+    /** The input with the accepted repairs written in place, absent when none is accepted (P5 7.1). */
+    repairedCopy: Uint8Array | undefined;
 }
 
 function headerOf(opener: SegmentOpener): {
@@ -411,6 +419,8 @@ function emptySegment(opener: SegmentOpener): WireSegment {
         endOffset: 0,
         framingFailure: undefined,
         resyncRefusal: undefined,
+        parityFindings: [],
+        parityPatches: [],
     };
 }
 
@@ -483,6 +493,7 @@ function finish(
     data: Uint8Array,
     capacity: ReadCapacity,
     keys: readonly HeldKey[],
+    budget: PayloadBudget,
 ): void {
     const { registryVersion, identifier } = headerOf(segment.opener);
     if (identifier === undefined) return;
@@ -519,6 +530,27 @@ function finish(
     } else {
         segment.commits = checked.error;
     }
+    const verification = verifyParity(
+        data,
+        segment,
+        budget,
+        registryVersion,
+        identifier,
+    );
+    segment.parityFindings = verification.findings;
+    segment.parityPatches = verification.patches;
+}
+
+/** The input with the patches of every segment written in place, in segment order (P5 7.1). */
+function repairedCopy(
+    data: Uint8Array,
+    segments: readonly WireSegment[],
+): Uint8Array | undefined {
+    const patches = segments.flatMap((segment) => segment.parityPatches);
+    if (patches.length === 0) return undefined;
+    const output = data.slice();
+    for (const patch of patches) output.set(patch.data, patch.offset);
+    return output;
 }
 
 function damageBefore(
@@ -681,6 +713,7 @@ export function readWire(
         stop: undefined,
         prefixFailure: undefined,
         resyncRefusal: undefined,
+        repairedCopy: undefined,
     };
     const walk = new ItemWalk(data, Number(capacity.itemsPerRead));
     const scanner = new ResyncScanner(data);
@@ -810,7 +843,7 @@ export function readWire(
                 data,
             );
             if (recovered?.kind === "accepted") {
-                finish(segment, data, capacity, keys);
+                finish(segment, data, capacity, keys, budget);
                 result.segments.push(segment);
                 segment = recoveredSegment(recovered.offset, recovered);
                 continue;
@@ -834,7 +867,7 @@ export function readWire(
                 break;
             }
             segment.endOffset = next.offset;
-            finish(segment, data, capacity, keys);
+            finish(segment, data, capacity, keys, budget);
             result.segments.push(segment);
             segment = emptySegment(begun);
             segment.items.push({
@@ -864,7 +897,8 @@ export function readWire(
         walk.limitOffset === undefined
             ? undefined
             : { kind: "item_limit", offset: walk.limitOffset };
-    finish(segment, data, capacity, keys);
+    finish(segment, data, capacity, keys, budget);
     result.segments.push(segment);
+    result.repairedCopy = repairedCopy(data, result.segments);
     return result;
 }
