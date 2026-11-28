@@ -166,8 +166,9 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	})
 	t.Run("composite hint block rewrites", func(t *testing.T) {
 		// The hint block is the last omega + k = 61 bytes of the ML-DSA-65 half: omega index
-		// bytes, then k counts. Each file replaces the whole block with the one described: the
-		// leading index bytes (the rest are zero) and the six counts.
+		// bytes, then k counts. The first two files replace the whole block with the one described
+		// by its leading index bytes (the rest are zero) and the six counts. The third edits the
+		// block in place: it sets one index byte and clears the counts.
 		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
 		prefix = appendBytes(prefix, compositeID[:])
 		prefix = append(prefix, 0x59, 0x0d, 0x2d)
