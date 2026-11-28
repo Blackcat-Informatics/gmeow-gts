@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 49 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 50 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -222,6 +222,34 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		}
 		record := encodeSignatureRecord(SignatureRecord{Algorithm: Ed25519Algorithm, KeyID: signed, Value: make([]byte, 64)})
 		compareDerived(t, slices.Concat(written[:len(written)-1], arrayHead(1), record), "proc-no-hash.bin")
+	})
+	t.Run("proc-opaque-frame.bin", func(t *testing.T) {
+		// Two signed frames under the registry version 2 header of proc-no-hash: a frame of the unknown
+		// non-critical type 99 with empty content, and a critical quads frame whose 14-byte payload is
+		// malformed. Both are signed by the signer's key. The writer refuses to write type 99, so the
+		// first frame is written by the writer's append, which signs it as AppendSignedWith does.
+		headerEnd, reason := itemEnd(honest, 0)
+		if reason != "" {
+			t.Fatalf("header: %s", reason)
+		}
+		header := bytes.Clone(honest[:headerEnd])
+		if header[3] != 1 || header[4] != 1 {
+			t.Fatalf("the honest header does not name registry version 1 and hash algorithm 1: % x", header[:5])
+		}
+		header[3] = 2
+		signer, err := NewEd25519Key(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		writer := segmentWriterFromHeader(header, 0)
+		if _, err := writer.append(99, []byte{0x80}, nil, writer.signer([]SigningKey{signer})); err != nil {
+			t.Fatal(err)
+		}
+		malformed := []byte{0x84, 0x81, 0x82, 0x81, 0x01, 0x01, 0x81, 0x82, 0x00, 0x01, 0x81, 0x00, 0x81, 0x00}
+		if _, err := writer.AppendSignedWith(2, []byte{0x82, 0x02, 0x05}, malformed, signer); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, writer.Bytes(), "proc-opaque-frame.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
