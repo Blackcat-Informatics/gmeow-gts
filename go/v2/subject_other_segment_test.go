@@ -60,7 +60,7 @@ func TestSubjectOtherSegmentIsDerivedFromTwoWrittenSegments(t *testing.T) {
 	if last := written[len(written)-1]; last != 0x80 {
 		t.Fatalf("the segment does not end with the empty signature list of its unsigned commit: % x", last)
 	}
-	edited := append(bytes.Clone(written[:len(written)-1]), second[2].signatures...)
+	edited := append(bytes.Clone(written[:len(written)-1]), first[2].signatures...)
 	if !bytes.Equal(edited, stored) {
 		t.Fatalf("the derived file differs from the stored one:\n got % x\nwant % x", edited, stored)
 	}
