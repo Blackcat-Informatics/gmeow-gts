@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 38 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 39 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -110,6 +110,14 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		case8 := withScalar(t, scalarPlusOne())
 		compareDerived(t, case8, "proc-case-8.bin")
 		compareDerived(t, relabel(t, case8, signed, KeyIdentifier(Ed25519Algorithm, fieldPrime)), "proc-case-9.bin")
+	})
+	t.Run("proc-case-7.bin", func(t *testing.T) {
+		// Case 7: value[0:32] is the encoding ec, then 30 bytes ff, then 7f: a small-order point
+		// as R. The key is the signer's and S is below L, so only the R check fails.
+		r := append(append([]byte{0xec}, bytes.Repeat([]byte{0xff}, 30)...), 0x7f)
+		edited := append(bytes.Clone(r), value[32:]...)
+		derived := replaceOnce(t, honest, append(signatureRecordPrefix(signed), value...), append(signatureRecordPrefix(signed), edited...))
+		compareDerived(t, derived, "proc-case-7.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
