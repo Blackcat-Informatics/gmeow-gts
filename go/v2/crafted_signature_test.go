@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 60 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 63 P6 input files, each a
 // written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -279,6 +279,29 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 			changed := slices.Concat(signatureRecordPrefix(signed), r, value[32:])
 			compareDerived(t, replaceOnce(t, honest, honestRecord, changed), c.name)
 		}
+	})
+	t.Run("unsigned auth files", func(t *testing.T) {
+		// auth-empty-segment is the header alone: a segment with no counted frame.
+		empty, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, empty.Bytes(), "auth-empty-segment.bin")
+		// auth-none and auth-proof-only are the honest blob frame and an unsigned commit over it: a root
+		// that holds with no signature. Their stored bytes are the same.
+		frames := storedFrames(t, honest)
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, writer.Bytes(), "auth-none.bin")
+		compareDerived(t, writer.Bytes(), "auth-proof-only.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
