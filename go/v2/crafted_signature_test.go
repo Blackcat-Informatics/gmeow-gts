@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 81 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 83 P6 input files, each a
 // written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -304,6 +304,20 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		}
 		compareDerived(t, writer.Bytes(), "auth-none.bin")
 		compareDerived(t, writer.Bytes(), "auth-proof-only.bin")
+	})
+	t.Run("ed25519-length-65.bin and ed25519-order-key-nonce.bin", func(t *testing.T) {
+		honestRecord := append(bytes.Clone(signatureRecordPrefix(signed)), value...)
+		// ed25519-length-65: the honest record with a value one byte longer than 64, and the record head
+		// 58 41 that states it. The extra byte is zero.
+		longPrefix := bytes.Clone(signatureRecordPrefix(signed))
+		longPrefix[len(longPrefix)-1] = 0x41
+		compareDerived(t, replaceOnce(t, honest, honestRecord, slices.Concat(longPrefix, value, []byte{0})), "ed25519-length-65.bin")
+		// ed25519-order-key-nonce: the key is the small-order point of entry 5 of smallOrderEncodingList
+		// and R is entry 7; S and the rest of the value are the honest ones. The key identifier of the
+		// small-order key is the one the file names.
+		smallKeyID := KeyIdentifier(Ed25519Algorithm, mustHex(t, smallOrderEncodingList[4]))
+		r := mustHex(t, smallOrderEncodingList[6])
+		compareDerived(t, replaceOnce(t, honest, honestRecord, slices.Concat(signatureRecordPrefix(smallKeyID), r, value[32:])), "ed25519-order-key-nonce.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
