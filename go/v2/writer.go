@@ -69,13 +69,20 @@ func NewSegmentWriter(options SegmentOptions) (*SegmentWriter, error) {
 		data = append(data, 0x81, 1)
 	}
 
-	writer := &SegmentWriter{data: data, head: hash("gts2 header", data), itemEnds: []int{len(data)}, indexStart: -1}
+	var ordinal uint64
 	if options.Lineage != nil {
-		writer.ordinal = options.Lineage.Ordinal
+		ordinal = options.Lineage.Ordinal
 	}
+	return segmentWriterFromHeader(data, ordinal), nil
+}
+
+// segmentWriterFromHeader returns a writer whose segment starts with the encoded header and
+// whose lineage ordinal is ordinal. The caller supplies a well-formed header.
+func segmentWriterFromHeader(header []byte, ordinal uint64) *SegmentWriter {
+	writer := &SegmentWriter{data: header, head: hash("gts2 header", header), itemEnds: []int{len(header)}, indexStart: -1, ordinal: ordinal}
 	writer.opener = writer.head
 	writer.rangePrefix.push(writer.head)
-	return writer, nil
+	return writer
 }
 
 // Head returns the identifier of the opener or latest ordinary frame.

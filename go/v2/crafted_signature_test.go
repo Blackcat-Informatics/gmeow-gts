@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 44 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 48 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -154,6 +154,46 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		shortHead[len(shortHead)-1] = 0x3f
 		both := slices.Concat(shortHead, make([]byte, 63))
 		compareDerived(t, replaceOnce(t, honest, honestRecord, both), "proc-lengths-key-first.bin")
+	})
+	t.Run("proc-mismatch-before-length.bin", func(t *testing.T) {
+		// The signer's record with a value of 10 zero bytes in place of the signature.
+		short := encodeSignatureRecord(SignatureRecord{Algorithm: Ed25519Algorithm, KeyID: signed, Value: make([]byte, 10)})
+		compareDerived(t, replaceOnce(t, honest, slices.Concat(signatureRecordPrefix(signed), value), short), "proc-mismatch-before-length.bin")
+	})
+	t.Run("proc-unknown-algorithm.bin, reg-unknown-algorithm-version.bin and proc-unknown-algorithm-long.bin", func(t *testing.T) {
+		// The honest segment under a header of registry version 2: the writer starts from the
+		// edited header, writes the blob frame and an unsigned commit, and the commit's empty
+		// signature list is replaced by one record of algorithm 3 under the signer's key
+		// identifier. The value is 64 zero bytes in proc-unknown-algorithm and in
+		// reg-unknown-algorithm-version, and 10 zero bytes in proc-unknown-algorithm-long.
+		headerEnd, reason := itemEnd(honest, 0)
+		if reason != "" {
+			t.Fatalf("header: %s", reason)
+		}
+		header := bytes.Clone(honest[:headerEnd])
+		if header[3] != 1 {
+			t.Fatalf("the honest header does not name registry version 1: % x", header[:4])
+		}
+		header[3] = 2
+		frames := storedFrames(t, honest)
+		for _, file := range []struct {
+			name   string
+			length int
+		}{{"proc-unknown-algorithm.bin", 64}, {"reg-unknown-algorithm-version.bin", 64}, {"proc-unknown-algorithm-long.bin", 10}} {
+			writer := segmentWriterFromHeader(bytes.Clone(header), 0)
+			if _, err := writer.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := writer.Commit(); err != nil {
+				t.Fatal(err)
+			}
+			written := writer.Bytes()
+			if last := written[len(written)-1]; last != 0x80 {
+				t.Fatalf("the segment does not end with the empty signature list of its unsigned commit: % x", last)
+			}
+			record := encodeSignatureRecord(SignatureRecord{Algorithm: 3, KeyID: signed, Value: make([]byte, file.length)})
+			compareDerived(t, slices.Concat(written[:len(written)-1], arrayHead(1), record), file.name)
+		}
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
