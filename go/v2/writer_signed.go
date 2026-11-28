@@ -18,6 +18,8 @@ type SigningKey interface {
 	Algorithm() uint64
 	// PublicKey returns the encoded public key whose identifier the signature names.
 	PublicKey() []byte
+	// check fails unless the key was made by its constructor; a zero value holds no key.
+	check() error
 	// sign returns the signature value over the signed message of P6 section 2.
 	sign(message []byte) ([]byte, error)
 }
@@ -42,13 +44,20 @@ func (k Ed25519Key) Algorithm() uint64 { return Ed25519Algorithm }
 // PublicKey returns the 32-byte public key.
 func (k Ed25519Key) PublicKey() []byte { return k.key.Public().(ed25519.PublicKey) }
 
+func (k Ed25519Key) check() error {
+	if len(k.key) != ed25519.PrivateKeySize {
+		return fmt.Errorf("the ed25519 key is a zero value; make it with NewEd25519Key")
+	}
+	return nil
+}
+
 func (k Ed25519Key) sign(message []byte) ([]byte, error) {
 	return ed25519.Sign(k.key, message), nil
 }
 
 // CompositeKey is a composite ML-DSA-65 and Ed25519 signing key (P6 section 4.2). Its signatures
-// are deterministic: the ML-DSA-65 half is made with the composite label as its context and an
-// empty randomiser, and the Ed25519 half is made over the same representative.
+// are deterministic: the ML-DSA-65 half is made with the composite label as its context and a
+// randomiser of 32 zero bytes (P6-28), and the Ed25519 half is made over the same representative.
 type CompositeKey struct {
 	ml     *mldsa.PrivateKey
 	ed     ed25519.PrivateKey
@@ -73,8 +82,16 @@ func NewCompositeKey(seed []byte) (CompositeKey, error) {
 // Algorithm returns the composite algorithm code.
 func (k CompositeKey) Algorithm() uint64 { return CompositeAlgorithm }
 
-// PublicKey returns the 1984-byte composite public key: the ML-DSA-65 key, then the Ed25519 key.
-func (k CompositeKey) PublicKey() []byte { return k.public }
+// PublicKey returns a copy of the 1984-byte composite public key: the ML-DSA-65 key, then the
+// Ed25519 key. The caller may change the copy without changing the key.
+func (k CompositeKey) PublicKey() []byte { return bytes.Clone(k.public) }
+
+func (k CompositeKey) check() error {
+	if k.ml == nil || len(k.ed) != ed25519.PrivateKeySize || len(k.public) == 0 {
+		return fmt.Errorf("the composite key is a zero value; make it with NewCompositeKey")
+	}
+	return nil
+}
 
 func (k CompositeKey) sign(message []byte) ([]byte, error) {
 	representative := compositeRepresentative(message)
@@ -153,6 +170,12 @@ func (w *SegmentWriter) signer(keys []SigningKey) func(Digest) ([]byte, error) {
 		seen := make(map[Digest]bool, len(keys))
 		records := make([][]byte, 0, len(keys))
 		for _, key := range keys {
+			if key == nil {
+				return nil, fmt.Errorf("a signing key is nil")
+			}
+			if err := key.check(); err != nil {
+				return nil, err
+			}
 			public := key.PublicKey()
 			keyID := KeyIdentifier(key.Algorithm(), public)
 			if seen[keyID] {
