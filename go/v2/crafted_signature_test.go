@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 28 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 31 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -163,6 +163,37 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		derived := bytes.Clone(composite)
 		derived[bytes.Index(composite, prefix)+len(prefix)+3303] = 56
 		compareDerived(t, derived, "composite-hint-count-above-omega.bin")
+	})
+	t.Run("composite hint block rewrites", func(t *testing.T) {
+		// The hint block is the last omega + k = 61 bytes of the ML-DSA-65 half: omega index
+		// bytes, then k counts. The first two files replace the whole block with the one described
+		// by its leading index bytes (the rest are zero) and the six counts. The third edits the
+		// block in place: it sets one index byte and clears the counts.
+		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
+		prefix = appendBytes(prefix, compositeID[:])
+		prefix = append(prefix, 0x59, 0x0d, 0x2d)
+		if count := bytes.Count(composite, prefix); count != 1 {
+			t.Fatalf("the composite record occurs %d times, want once", count)
+		}
+		hintStart := bytes.Index(composite, prefix) + len(prefix) + 3248
+		withHints := func(indices []byte, counts [6]byte) []byte {
+			block := make([]byte, 55, 61)
+			copy(block, indices)
+			block = append(block, counts[:]...)
+			derived := bytes.Clone(composite)
+			copy(derived[hintStart:], block)
+			return derived
+		}
+		// Counts 2 then 1: the second count is below the index reached by the first.
+		compareDerived(t, withHints([]byte{0, 1}, [6]byte{2, 1}), "composite-hint-count-decreasing.bin")
+		// Two indices of the first polynomial, 5 then 3: not strictly increasing.
+		compareDerived(t, withHints([]byte{5, 3}, [6]byte{2}), "composite-hint-indices-unordered.bin")
+		// Every count 0 and the first index byte set to 1, the other index bytes as written: a
+		// non-zero byte that no count reaches.
+		padding := bytes.Clone(composite)
+		padding[hintStart] = 1
+		clear(padding[hintStart+55 : hintStart+61])
+		compareDerived(t, padding, "composite-hint-padding-nonzero.bin")
 	})
 }
 
