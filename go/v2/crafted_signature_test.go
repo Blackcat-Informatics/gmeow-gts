@@ -16,13 +16,14 @@ import (
 )
 
 // TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 50 P6 input files, each a
-// written segment with named edits of its signature record. The Ed25519 files start from
+// written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
 // P6/composite-honest.bin, which the writer reproduces in TestCompositeHonestIsWrittenByteForByte.
 // Most edits find their target through a pattern that must occur exactly once. The registry
 // version 2 files instead edit header bytes and splice a record onto the end of the segment, each
-// guarded by an assertion on the byte it reads.
+// guarded by an assertion on the byte it reads. proc-opaque-frame is written frame by frame and
+// edits nothing.
 func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	_, key := recoveredKeys()
 	honest := vectorBytes(t, "ed25519-honest.bin")
@@ -226,7 +227,8 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	t.Run("proc-opaque-frame.bin", func(t *testing.T) {
 		// Two signed frames under the registry version 2 header of proc-no-hash: a frame of the unknown
 		// non-critical type 99 with empty content, and a critical quads frame whose 14-byte payload is
-		// malformed. Both are signed by the signer's key. The writer refuses to write type 99, so the
+		// malformed: its content states row_count 5, which the 14-byte payload does not hold. Both are
+		// signed by the signer's key. The writer refuses to write type 99, so the
 		// first frame is written by the writer's append, which signs it as AppendSignedWith does.
 		headerEnd, reason := itemEnd(honest, 0)
 		if reason != "" {
