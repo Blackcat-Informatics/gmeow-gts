@@ -121,11 +121,10 @@ fn named_graph_reifier_and_annotation_roundtrip() {
 #[test]
 fn literals_lang_and_datatype_roundtrip() {
     let xsd_int = "http://www.w3.org/2001/XMLSchema#integer";
-    let nq = format!(
-        "<https://ex/s> <https://ex/label> \"Cat\"@en .\n\
+    let nq = "<https://ex/s> <https://ex/label> \"Cat\"@en .\n\
          <https://ex/s> <https://ex/n> \"42\"^^<{xsd_int}> .\n\
          _:b0 <https://ex/p> <https://ex/s> .\n"
-    );
+        .replace("{xsd_int}", xsd_int);
     let imported = from_nquads(&nq).expect("N-Quads parses");
     let out = to_nquads(&read(&imported, true, None));
     assert_eq!(sorted_lines(&out), sorted_lines(&nq));
@@ -162,14 +161,12 @@ fn compact_blank_node_and_language_tag_delimiters_roundtrip() {
 
 #[test]
 fn quoted_triple_adjacent_delimiters_roundtrip() {
-    let nq = format!(
-        "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n\
+    let nq = "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n\
          <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> \"Cat\"@en)>> .\n"
-    );
-    let expected = format!(
-        "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n\
+        .replace("{RDF_REIFIES}", RDF_REIFIES);
+    let expected = "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n\
          <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> \"Cat\"@en )>> .\n"
-    );
+        .replace("{RDF_REIFIES}", RDF_REIFIES);
     let imported = from_nquads(&nq).expect("N-Quads parses");
     let out = to_nquads(&read(&imported, true, None));
     assert_eq!(sorted_lines(&out), sorted_lines(&expected));
@@ -245,10 +242,10 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
 
 #[test]
 fn nquads_import_preserves_multiple_reifiers_for_the_same_statement() {
-    let nq = format!(
+    let nq =
         "<https://ex/r1> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n\
          <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
-    );
+            .replace("{RDF_REIFIES}", RDF_REIFIES);
     let graph = read(&from_nquads(&nq).expect("N-Quads parses"), true, None);
     assert_eq!(graph.reifiers.len(), 2);
     assert_eq!(graph.reifiers[0].1, graph.reifiers[1].1);
@@ -315,7 +312,8 @@ fn rejects_invalid_rdf_term_positions() {
 #[test]
 fn rejects_forbidden_iri_characters() {
     for ch in ['{', '}', '|', '\\', '^', '`'] {
-        let nq = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
+        let nq =
+            "<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n".replace("{ch}", &ch.to_string());
         let Err(err) = from_nquads(&nq) else {
             panic!("forbidden IRI character {ch:?} should be rejected");
         };

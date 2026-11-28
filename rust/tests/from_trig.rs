@@ -144,12 +144,11 @@ ex:r ex:confidence "0.9" .
 "#;
     let imported = from_trig(trig).expect("TriG parses");
     let out = to_nquads(&read(&imported, true, None));
-    let expected = format!(
-        "<https://ex/s> <https://ex/label> \"Cat\"@en <https://ex/g> .\n\
+    let expected = "<https://ex/s> <https://ex/label> \"Cat\"@en <https://ex/g> .\n\
          <https://ex/s> <https://ex/n> \"42\"^^<http://www.w3.org/2001/XMLSchema#integer> <https://ex/g> .\n\
          <https://ex/r> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n\
          <https://ex/r> <https://ex/confidence> \"0.9\" .\n"
-    );
+        .replace("{RDF_REIFIES}", RDF_REIFIES);
     assert_eq!(sorted_lines(&out), sorted_lines(&expected));
 }
 
@@ -194,9 +193,9 @@ ex:r rdf:reifies <<( ex:s ex:p ex:o)>> .
 ";
     let imported = from_trig(trig).expect("adjacent quoted triple close parses");
     let out = to_nquads(&read(&imported, true, None));
-    let expected = format!(
+    let expected =
         "<https://ex/r> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> ."
-    );
+            .replace("{RDF_REIFIES}", RDF_REIFIES);
     assert_eq!(sorted_lines(&out), vec![expected]);
 }
 
@@ -279,7 +278,8 @@ fn resolves_base_iri_relative_references() {
 #[test]
 fn rejects_forbidden_raw_iri_characters() {
     for ch in ['{', '}', '|', '\\', '^', '`'] {
-        let trig = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
+        let trig =
+            "<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n".replace("{ch}", &ch.to_string());
         let Err(err) = from_trig(&trig) else {
             panic!("forbidden IRI character {ch:?} should be rejected");
         };

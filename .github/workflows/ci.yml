@@ -127,6 +127,12 @@ jobs:
           cargo doc --locked --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
           cargo doc --locked --manifest-path rust/capi/Cargo.toml --no-deps
 
+      - name: Capture the production Clippy receipt (census gate)
+        if: runner.os == 'Linux'
+        run: |
+          cargo install --locked --version "=$(sed -n 's/^raf-census = "=\(.*\)"$/\1/p' rust/Cargo.toml)" cargo-raf-census
+          scripts/rust-census.sh
+
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path rust/Cargo.toml --no-default-features --locked
