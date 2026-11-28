@@ -217,6 +217,43 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		rep = append(rep, digest[:]...)
 		compositeWithRepresentative(t, rep, string(compositeLabel), "composite-prehash-wrong.bin")
 	})
+	// The composite value starts after the record head, at offset 281 of the honest file: its
+	// ML-DSA-65 half is the first 3309 bytes and its Ed25519 half the last 64.
+	compositeValueStart := func(t *testing.T) int {
+		t.Helper()
+		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
+		prefix = appendBytes(prefix, compositeID[:])
+		prefix = append(prefix, 0x59, 0x0d, 0x2d)
+		at := bytes.Index(composite, prefix)
+		if at < 0 || bytes.Count(composite, prefix) != 1 {
+			t.Fatal("the composite record does not occur exactly once")
+		}
+		return at + len(prefix)
+	}
+	t.Run("proc-case-11.bin, proc-case-12.bin and proc-case-13.bin", func(t *testing.T) {
+		// Case 11: one bit of the last 64 bytes is changed, the lowest bit of the fourth byte of
+		// the Ed25519 half. Case 12: one bit of the ML-DSA-65 half, the lowest bit of its byte 100.
+		// Case 13: both changes together.
+		start := compositeValueStart(t)
+		flip := func(data []byte, at int) []byte {
+			out := bytes.Clone(data)
+			out[at] ^= 0x01
+			return out
+		}
+		edHalf := start + 3309 + 3
+		mlHalf := start + 100
+		compareDerived(t, flip(composite, edHalf), "proc-case-11.bin")
+		compareDerived(t, flip(composite, mlHalf), "proc-case-12.bin")
+		compareDerived(t, flip(flip(composite, edHalf), mlHalf), "proc-case-13.bin")
+	})
+	t.Run("proc-case-14.bin", func(t *testing.T) {
+		// Case 14: the composite value has 3372 bytes. The record head declares that length, and
+		// the last byte of the value is removed.
+		start := compositeValueStart(t)
+		out := bytes.Clone(composite)
+		out[start-1] = 0x2c
+		compareDerived(t, append(out[:start+3372], out[start+3373:]...), "proc-case-14.bin")
+	})
 	t.Run("composite hint block rewrites", func(t *testing.T) {
 		// The hint block is the last omega + k = 61 bytes of the ML-DSA-65 half: omega index
 		// bytes, then k counts. The first two files replace the whole block with the one described
