@@ -10,12 +10,14 @@ import (
 )
 
 // frameSpan is one stored frame of a corpus file: the content record and the decoded payload,
-// as the writer takes them, and the end of the frame in the file.
+// as the writer takes them, the signature list exactly as stored, and the end of the frame in
+// the file.
 type frameSpan struct {
-	frameType uint64
-	content   []byte
-	payload   []byte
-	end       int
+	frameType  uint64
+	content    []byte
+	payload    []byte
+	signatures []byte
+	end        int
 }
 
 // byteStringBody returns the bytes of the byte string encoded in item, which holds its head and
@@ -54,8 +56,15 @@ func storedFramesBeforeClosing(t *testing.T, data []byte) ([]frameSpan, int) {
 	if reason != "" {
 		t.Fatalf("header: %s", reason)
 	}
+	return storedFramesFrom(t, data, headerEnd)
+}
+
+// storedFramesFrom returns the frames that begin at start, in order, and the offset of the first
+// byte after them. Frames are read from start until a byte that does not begin a frame.
+func storedFramesFrom(t *testing.T, data []byte, start int) ([]frameSpan, int) {
+	t.Helper()
 	var frames []frameSpan
-	position := headerEnd
+	position := start
 	for position < len(data) {
 		if data[position] != 0x8b || position+1 >= len(data) || data[position+1] != 2 {
 			break
@@ -93,10 +102,11 @@ func storedFramesBeforeClosing(t *testing.T, data []byte) ([]frameSpan, int) {
 			t.Fatalf("signatures: %s", reason)
 		}
 		frames = append(frames, frameSpan{
-			frameType: frameType,
-			content:   data[contentStart:contentEnd],
-			payload:   byteStringBody(t, data[payloadStart:payloadEnd]),
-			end:       end,
+			frameType:  frameType,
+			content:    data[contentStart:contentEnd],
+			payload:    byteStringBody(t, data[payloadStart:payloadEnd]),
+			signatures: data[identifierEnd:end],
+			end:        end,
 		})
 		position = end
 	}
