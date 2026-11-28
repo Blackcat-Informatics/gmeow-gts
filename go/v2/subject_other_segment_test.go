@@ -21,7 +21,11 @@ import (
 // empty signature list of the unsigned commit.
 func TestSubjectOtherSegmentIsDerivedFromTwoWrittenSegments(t *testing.T) {
 	stored := vectorBytes(t, "subject-other-segment.bin")
-	first, firstEnd := storedFramesFrom(t, stored, 11)
+	headerEnd, reason := itemEnd(stored, 0)
+	if reason != "" {
+		t.Fatalf("header: %s", reason)
+	}
+	first, firstEnd := storedFramesFrom(t, stored, headerEnd)
 	if len(first) != 3 {
 		t.Fatalf("the first segment has %d frames, want 3", len(first))
 	}

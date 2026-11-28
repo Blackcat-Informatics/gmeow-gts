@@ -141,6 +141,9 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 // identifier. It writes the opener as a file that is appended to, so the bytes before it are left
 // unchanged.
 func (w *SegmentWriter) Resync() error {
+	if w.ordinal == math.MaxUint64 {
+		return fmt.Errorf("the lineage ordinal is at its maximum and no further segment can follow")
+	}
 	landing := uint64(len(w.data))
 	ordinal := w.ordinal + 1
 	marker := hash("gts2 header", []byte{0x81, 0x05})
