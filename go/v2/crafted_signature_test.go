@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 50 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 60 P6 input files, each a
 // written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -252,6 +252,33 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 			t.Fatal(err)
 		}
 		compareDerived(t, writer.Bytes(), "proc-opaque-frame.bin")
+	})
+	t.Run("ed25519-nonce files", func(t *testing.T) {
+		// The honest signature with its R half, the first 32 bytes of the value, replaced; S and the key
+		// stay honest. ed25519-nonce-small-order-N takes the Nth of the eight encodings of points of small
+		// order, in the order of smallOrderEncodingList. ed25519-nonce-non-canonical takes an encoding of a
+		// y coordinate of at least p, and ed25519-nonce-off-curve an encoding that does not decode.
+		cases := []struct {
+			name string
+			r    string
+		}{
+			{"ed25519-nonce-small-order-1.bin", smallOrderEncodingList[0]},
+			{"ed25519-nonce-small-order-2.bin", smallOrderEncodingList[1]},
+			{"ed25519-nonce-small-order-3.bin", smallOrderEncodingList[2]},
+			{"ed25519-nonce-small-order-4.bin", smallOrderEncodingList[3]},
+			{"ed25519-nonce-small-order-5.bin", smallOrderEncodingList[4]},
+			{"ed25519-nonce-small-order-6.bin", smallOrderEncodingList[5]},
+			{"ed25519-nonce-small-order-7.bin", smallOrderEncodingList[6]},
+			{"ed25519-nonce-small-order-8.bin", smallOrderEncodingList[7]},
+			{"ed25519-nonce-non-canonical.bin", "f2ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"},
+			{"ed25519-nonce-off-curve.bin", "0200000000000000000000000000000000000000000000000000000000000000"},
+		}
+		honestRecord := append(bytes.Clone(signatureRecordPrefix(signed)), value...)
+		for _, c := range cases {
+			r := mustHex(t, c.r)
+			changed := slices.Concat(signatureRecordPrefix(signed), r, value[32:])
+			compareDerived(t, replaceOnce(t, honest, honestRecord, changed), c.name)
+		}
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
