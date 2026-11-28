@@ -6,12 +6,15 @@ package v2
 import (
 	"bytes"
 	"crypto/ed25519"
+	"crypto/mldsa"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"math/big"
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 31 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 34 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -164,6 +167,55 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		derived[bytes.Index(composite, prefix)+len(prefix)+3303] = 56
 		compareDerived(t, derived, "composite-hint-count-above-omega.bin")
 	})
+	t.Run("composite-label-wrong.bin", func(t *testing.T) {
+		// M' with another label: both halves sign the representative under the label
+		// COMPSIG-MLDSA65-Ed25519-SHA256. The ML-DSA half keeps the composite label as its context.
+		message, _ := honestCompositeCommitMessage(t, compositeKey)
+		rep := compositeRepresentativeWithLabel(message, "COMPSIG-MLDSA65-Ed25519-SHA256")
+		ml, err := compositeKey.ml.SignDeterministic(rep, &mldsa.Options{Context: string(compositeLabel)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		value := append(ml, ed25519.Sign(compositeKey.ed, rep)...)
+		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
+		prefix = appendBytes(prefix, compositeID[:])
+		prefix = append(prefix, 0x59, 0x0d, 0x2d)
+		honestValue := composite[bytes.Index(composite, prefix)+len(prefix):][:len(value)]
+		compareDerived(t, replaceOnce(t, composite, honestValue, value), "composite-label-wrong.bin")
+	})
+	// compositeWithRepresentative replaces the composite value of the honest file with the halves
+	// made over rep: the ML-DSA half under mlContext, and the Ed25519 half over rep.
+	compositeWithRepresentative := func(t *testing.T, rep []byte, mlContext string, name string) {
+		t.Helper()
+		ml, err := compositeKey.ml.SignDeterministic(rep, &mldsa.Options{Context: mlContext})
+		if err != nil {
+			t.Fatal(err)
+		}
+		value := append(ml, ed25519.Sign(compositeKey.ed, rep)...)
+		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
+		prefix = appendBytes(prefix, compositeID[:])
+		prefix = append(prefix, 0x59, 0x0d, 0x2d)
+		honestValue := composite[bytes.Index(composite, prefix)+len(prefix):][:len(value)]
+		compareDerived(t, replaceOnce(t, composite, honestValue, value), name)
+	}
+	t.Run("composite-context-nonempty.bin", func(t *testing.T) {
+		// M' with len(ctx) 1 and the one-byte context 0x78: the representative carries a non-empty
+		// context, and the ML-DSA half keeps the composite label as its context.
+		message, _ := honestCompositeCommitMessage(t, compositeKey)
+		digest := sha512.Sum512(message[:])
+		rep := append(append(append([]byte{}, compositePrefix...), compositeLabel...), 1, 0x78)
+		rep = append(rep, digest[:]...)
+		compositeWithRepresentative(t, rep, string(compositeLabel), "composite-context-nonempty.bin")
+	})
+	t.Run("composite-prehash-wrong.bin", func(t *testing.T) {
+		// M' with SHA-256 as the pre-hash: the representative holds SHA-256 of the message in place
+		// of SHA-512.
+		message, _ := honestCompositeCommitMessage(t, compositeKey)
+		digest := sha256.Sum256(message[:])
+		rep := append(append(append([]byte{}, compositePrefix...), compositeLabel...), 0)
+		rep = append(rep, digest[:]...)
+		compositeWithRepresentative(t, rep, string(compositeLabel), "composite-prehash-wrong.bin")
+	})
 	t.Run("composite hint block rewrites", func(t *testing.T) {
 		// The hint block is the last omega + k = 61 bytes of the ML-DSA-65 half: omega index
 		// bytes, then k counts. The first two files replace the whole block with the one described
@@ -209,4 +261,33 @@ func reverse(data []byte) {
 	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
 		data[i], data[j] = data[j], data[i]
 	}
+}
+
+// honestCompositeCommitMessage returns the signed message of the honest composite commit: the
+// message that the composite signature of P6/composite-honest.bin is made over.
+func honestCompositeCommitMessage(t *testing.T, key CompositeKey) (Digest, Digest) {
+	t.Helper()
+	frames := storedFrames(t, vectorBytes(t, "composite-honest.bin"))
+	writer, err := NewSegmentWriter(SegmentOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+		t.Fatal(err)
+	}
+	commit, err := writer.CommitSignedWith(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := SignatureRecord{Algorithm: CompositeAlgorithm, KeyID: KeyIdentifier(CompositeAlgorithm, key.PublicKey())}
+	return SignedMessage(record, writer.opener, commit), commit
+}
+
+// compositeRepresentativeWithLabel is M' of P6 section 4.2 under the given label, with the empty
+// context: the prefix, the label, a zero length and the SHA-512 digest of the message.
+func compositeRepresentativeWithLabel(message Digest, label string) []byte {
+	digest := sha512.Sum512(message[:])
+	out := append(append([]byte{}, compositePrefix...), label...)
+	out = append(out, 0)
+	return append(out, digest[:]...)
 }
