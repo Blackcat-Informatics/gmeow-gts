@@ -35,17 +35,30 @@ func byteStringBody(t *testing.T, item []byte) []byte {
 	return item[headLength:]
 }
 
-// storedFrames returns the frames that follow the header of a corpus file, in order.
+// storedFrames returns the frames that follow the header of a corpus file, in order. The file
+// must end with its last frame.
 func storedFrames(t *testing.T, data []byte) []frameSpan {
+	t.Helper()
+	frames, end := storedFramesBeforeClosing(t, data)
+	if end != len(data) {
+		t.Fatalf("no frame envelope at %d", end)
+	}
+	return frames
+}
+
+// storedFramesBeforeClosing returns the frames that follow the header of a corpus file, in order,
+// and the offset of the first byte after them. That byte starts the closing items, if any.
+func storedFramesBeforeClosing(t *testing.T, data []byte) ([]frameSpan, int) {
 	t.Helper()
 	headerEnd, reason := itemEnd(data, 0)
 	if reason != "" {
 		t.Fatalf("header: %s", reason)
 	}
 	var frames []frameSpan
-	for position := headerEnd; position < len(data); {
-		if data[position] != 0x8b || data[position+1] != 2 {
-			t.Fatalf("no frame envelope at %d", position)
+	position := headerEnd
+	for position < len(data) {
+		if data[position] != 0x8b || position+1 >= len(data) || data[position+1] != 2 {
+			break
 		}
 		typePosition := position + 2
 		typeEnd, reason := itemEnd(data, typePosition)
@@ -87,7 +100,7 @@ func storedFrames(t *testing.T, data []byte) []frameSpan {
 		})
 		position = end
 	}
-	return frames
+	return frames, position
 }
 
 // writeAppendSegment writes the segment of P6/cosign-append-commit.bin: the two ordinary frames
