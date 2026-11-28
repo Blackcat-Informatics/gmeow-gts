@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 63 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 67 P6 input files, each a
 // written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -327,6 +327,79 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		other := ed25519.Sign(key, message[:])
 		derived := replaceOnce(t, honest, append(signatureRecordPrefix(signed), value...), append(signatureRecordPrefix(signed), other...))
 		compareDerived(t, derived, "ed25519-equation-message.bin")
+	})
+
+	// The coverage files start from the honest blob frame F1 and add blob frames with the payloads
+	// "F2" to "F4". The content of a blob frame holds the unit digest of its payload. A frame is
+	// broken by replacing that digest after writing: its stored identifier is kept, so its link
+	// fails. Signatures are made by the key of seed 00..1f, the key the coverage files name.
+	coverageWriter := func(t *testing.T) *SegmentWriter {
+		t.Helper()
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		first := storedFrames(t, honest)[0]
+		if _, err := writer.Append(first.frameType, first.content, first.payload); err != nil {
+			t.Fatal(err)
+		}
+		return writer
+	}
+	blobRecord := func(payload string) []byte {
+		unit := hash("gts2 unit", []byte(payload))
+		return append(append([]byte{0x82, 0x58, 0x20}, unit[:]...), 0x81, 0x01)
+	}
+	breakBlob := func(t *testing.T, data []byte, payload string) []byte {
+		t.Helper()
+		unit := hash("gts2 unit", []byte(payload))
+		altered := hash("gts2 unit", []byte("altered"))
+		return replaceOnce(t, data, append([]byte{0x58, 0x20}, unit[:]...), append([]byte{0x58, 0x20}, altered[:]...))
+	}
+	t.Run("cov-broken-signed-frame.bin", func(t *testing.T) {
+		// F2 is signed over its identifier and its content is then broken. The signature is valid
+		// over the stored identifier and covers no frame.
+		writer := coverageWriter(t)
+		if _, err := writer.AppendSigned(9, blobRecord("F2"), []byte("F2"), key); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, breakBlob(t, writer.Bytes(), "F2"), "cov-broken-signed-frame.bin")
+	})
+	t.Run("cov-break-before.bin", func(t *testing.T) {
+		// F2 is broken and unsigned, F3 links to the stored identifier of F2, and F4 is signed.
+		writer := coverageWriter(t)
+		if _, err := writer.Append(9, blobRecord("F2"), []byte("F2")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Append(9, blobRecord("F3"), []byte("F3")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.AppendSigned(9, blobRecord("F4"), []byte("F4"), key); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, breakBlob(t, writer.Bytes(), "F2"), "cov-break-before.bin")
+	})
+	t.Run("cov-break-after.bin", func(t *testing.T) {
+		// F2 is signed and linked; F3 is broken after it.
+		writer := coverageWriter(t)
+		if _, err := writer.AppendSigned(9, blobRecord("F2"), []byte("F2"), key); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Append(9, blobRecord("F3"), []byte("F3")); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, breakBlob(t, writer.Bytes(), "F3"), "cov-break-after.bin")
+	})
+	t.Run("cov-healed.bin", func(t *testing.T) {
+		// The identifier of F1 is replaced by 32 zero bytes and nothing else is changed. F2 links
+		// to the identifier F1 had when it was written, so F1 is healed and F2 is linked.
+		writer := coverageWriter(t)
+		first := writer.Head()
+		if _, err := writer.AppendSigned(9, blobRecord("F2"), []byte("F2"), key); err != nil {
+			t.Fatal(err)
+		}
+		written := writer.Bytes()
+		derived := replaceOnce(t, written, append([]byte{0x58, 0x20}, first[:]...), append([]byte{0x58, 0x20}, make([]byte, 32)...))
+		compareDerived(t, derived, "cov-healed.bin")
 	})
 
 	composite := vectorBytes(t, "composite-honest.bin")
