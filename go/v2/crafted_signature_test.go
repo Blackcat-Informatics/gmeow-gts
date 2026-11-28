@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 67 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 81 P6 input files, each a
 // written segment. Most are named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -23,7 +23,9 @@ import (
 // Most edits find their target through a pattern that must occur exactly once. The registry
 // version 2 files instead edit header bytes and splice a record onto the end of the segment, each
 // guarded by an assertion on the byte it reads. proc-opaque-frame is written frame by frame and
-// edits nothing.
+// edits nothing. The signature list, subject, key identifier and authenticity files at the end are
+// written signed segments with a named edit of the list, the identifier field, the payload or the
+// commit content, and the key and subject inputs.
 func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	_, key := recoveredKeys()
 	honest := vectorBytes(t, "ed25519-honest.bin")
@@ -549,6 +551,165 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		padding[hintStart] = 1
 		clear(padding[hintStart+55 : hintStart+61])
 		compareDerived(t, padding, "composite-hint-padding-nonzero.bin")
+	})
+	// withSignatureList returns data with the signatures element of frame replaced by list.
+	withSignatureList := func(data []byte, frame frameSpan, list []byte) []byte {
+		return slices.Concat(data[:frame.end-len(frame.signatures)], list, data[frame.end:])
+	}
+	// commitWithContent writes a commit frame with the stated content, signed by the key of seed
+	// 00..1f over the frame the content makes.
+	commitWithContent := func(t *testing.T, writer *SegmentWriter, content []byte) {
+		t.Helper()
+		signer, err := NewEd25519Key(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.append(commitType, content, nil, writer.signer([]SigningKey{signer})); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// commitContent is the content record of a commit: [count, root].
+	commitContent := func(count uint64, root Digest) []byte {
+		return appendByteString(appendHead(appendHead(nil, 4, 2), 0, count), root[:])
+	}
+	honestFrame := storedFrames(t, honest)[0]
+
+	t.Run("sig-list-key-id-decides.bin and sig-list-grammar-first.bin", func(t *testing.T) {
+		// The honest blob frame F1, signed by the key of seed 00..1f. Its signature list is then
+		// replaced by two records that carry the signer's value. In sig-list-key-id-decides the
+		// records name key identifiers that differ in the last byte, the signer's and the signer's
+		// plus one, and the larger comes first: the list is out of order. In sig-list-grammar-first
+		// the signer's record comes first and the second record names the signer's identifier
+		// without its last byte, 31 bytes: the grammar of the second record is judged first.
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.AppendSigned(honestFrame.frameType, honestFrame.content, honestFrame.payload, key); err != nil {
+			t.Fatal(err)
+		}
+		written := writer.Bytes()
+		frame := storedFrames(t, written)[0]
+		blobValue := signatureValueAfter(t, written, signatureRecordPrefix(signed))
+		signerRecord := slices.Concat(signatureRecordPrefix(signed), blobValue)
+		next := signed
+		next[len(next)-1]++
+		nextRecord := slices.Concat(signatureRecordPrefix(next), blobValue)
+		shortRecord := slices.Concat([]byte{0x83, 0x01, 0x58, 0x1f}, signed[:31], []byte{0x58, 0x40}, blobValue)
+		compareDerived(t, withSignatureList(written, frame, slices.Concat(arrayHead(2), nextRecord, signerRecord)), "sig-list-key-id-decides.bin")
+		compareDerived(t, withSignatureList(written, frame, slices.Concat(arrayHead(2), signerRecord, shortRecord)), "sig-list-grammar-first.bin")
+	})
+	t.Run("key-id and subject inputs", func(t *testing.T) {
+		// The input of key-id-ed25519 is the public key of the seed 00..1f, and that of key-id-composite
+		// is the composite public key of the seed 40..7f. The input of subject-ed25519 and
+		// subject-composite is K, H0 and F as 96 bytes: the runs 01..20, 21..40 and 41..60.
+		compareDerived(t, key.Public().(ed25519.PublicKey), "key-id-ed25519.bin")
+		compareDerived(t, compositePublic, "key-id-composite.bin")
+		var subject []byte
+		for _, start := range []byte{0x01, 0x21, 0x41} {
+			for i := range byte(32) {
+				subject = append(subject, start+i)
+			}
+		}
+		compareDerived(t, subject, "subject-ed25519.bin")
+		compareDerived(t, subject, "subject-composite.bin")
+	})
+	t.Run("subject-healed-frame.bin", func(t *testing.T) {
+		// F1 is signed by the key of seed 00..1f, F2 follows it unsigned, and the identifier field of F1
+		// is then replaced by 32 zero bytes. F2 links to the identifier F1 was written with, so F1 is
+		// healed and the signature over its written identifier stays valid.
+		signedWriter, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, err := signedWriter.AppendSigned(honestFrame.frameType, honestFrame.content, honestFrame.payload, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := signedWriter.Append(9, blobRecord("F2"), []byte("F2")); err != nil {
+			t.Fatal(err)
+		}
+		derived := replaceOnce(t, signedWriter.Bytes(), append([]byte{0x58, 0x20}, first[:]...), append([]byte{0x58, 0x20}, make([]byte, 32)...))
+		compareDerived(t, derived, "subject-healed-frame.bin")
+	})
+	t.Run("subject-other-frame.bin", func(t *testing.T) {
+		// A blob frame with the payload "F1, another" and an unsigned commit over it. The signature
+		// list of the commit is replaced by one record: the signature of the honest commit of the
+		// honest segment, which is made over another frame.
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Append(9, blobRecord("F1, another"), []byte("F1, another")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		written := writer.Bytes()
+		commit := storedFrames(t, written)[1]
+		compareDerived(t, withSignatureList(written, commit, slices.Concat(arrayHead(1), signatureRecordPrefix(signed), value)), "subject-other-frame.bin")
+	})
+	t.Run("auth commit files", func(t *testing.T) {
+		// Each file is the honest blob frame and a commit signed by the key of seed 00..1f over its
+		// own content, so the signature is valid. The commit states the count 5 with the honest root
+		// (auth-commit-bad-count), the count 1 with a root of 32 zero bytes (auth-commit-bad-root),
+		// or the three fields [1, root, 0] (auth-commit-malformed).
+		build := func(t *testing.T, content func(root Digest) []byte) []byte {
+			t.Helper()
+			writer := coverageWriter(t)
+			commitWithContent(t, writer, content(writer.rangePrefix.root()))
+			return writer.Bytes()
+		}
+		compareDerived(t, build(t, func(root Digest) []byte { return commitContent(5, root) }), "auth-commit-bad-count.bin")
+		compareDerived(t, build(t, func(Digest) []byte { return commitContent(1, Digest{}) }), "auth-commit-bad-root.bin")
+		compareDerived(t, build(t, func(root Digest) []byte {
+			return append(appendByteString(appendHead(appendHead(nil, 4, 3), 0, 1), root[:]), 0x00)
+		}), "auth-commit-malformed.bin")
+	})
+	t.Run("auth-empty-segment-index.bin and auth-non-commit.bin", func(t *testing.T) {
+		// auth-empty-segment-index: the only frame is an index frame signed by the key of seed
+		// 00..1f. Its content and payload are declared inputs: frame_count 0, a head digest, and
+		// the index payload of the corpus file. auth-non-commit: a frame of type 1 and a
+		// frame of type 2, the second a quads frame, whose content and payload are declared inputs, the second signed by
+		// the same key.
+		index := storedFrames(t, vectorBytes(t, "auth-empty-segment-index.bin"))[0]
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.AppendSigned(index.frameType, index.content, index.payload, key); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, writer.Bytes(), "auth-empty-segment-index.bin")
+		frames := storedFrames(t, vectorBytes(t, "auth-non-commit.bin"))
+		other, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := other.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := other.AppendSigned(frames[1].frameType, frames[1].content, frames[1].payload, key); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, other.Bytes(), "auth-non-commit.bin")
+	})
+	t.Run("auth-payload-damaged.bin", func(t *testing.T) {
+		// A blob frame with the payload "F1 payload bytes", whose commit is signed by the key of
+		// seed 00..1f. The payload bytes are then changed to "F1 qayload bytes": its stated digest
+		// is kept, so the frame's integrity is damaged while the signature over the commit holds.
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Append(9, blobRecord("F1 payload bytes"), []byte("F1 payload bytes")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.CommitSigned(key); err != nil {
+			t.Fatal(err)
+		}
+		compareDerived(t, replaceOnce(t, writer.Bytes(), []byte("F1 payload bytes"), []byte("F1 qayload bytes")), "auth-payload-damaged.bin")
 	})
 }
 
