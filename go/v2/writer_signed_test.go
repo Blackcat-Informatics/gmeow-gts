@@ -54,9 +54,36 @@ func TestEd25519HonestIsWrittenByteForByte(t *testing.T) {
 	if _, err := writer.CommitSigned(key); err != nil {
 		t.Fatal(err)
 	}
-	if got := writer.Bytes(); !bytes.Equal(got, stored) {
+	got := writer.Bytes()
+	if !bytes.Equal(got, stored) {
 		t.Fatalf("the written segment differs from the stored file:\n got % x\nwant % x", got, stored)
 	}
+	for _, name := range honestSegmentFiles {
+		if !bytes.Equal(got, vectorBytes(t, name)) {
+			t.Errorf("P6/%s is not the written honest segment", name)
+		}
+	}
+}
+
+// honestSegmentFiles are the P6 input files that hold the honest segment of
+// TestEd25519HonestIsWrittenByteForByte unchanged. Their cases read it with other declared
+// inputs, such as the held and trusted keys, or check another value of it; auth-commit-valid
+// repeats the read of ed25519-honest.
+var honestSegmentFiles = []string{
+	"auth-all.bin",
+	"auth-commit-valid.bin",
+	"auth-untrusted.bin",
+	"cov-simple.bin",
+	"ed25519-honest-reproduce.bin",
+	"key-held-not-trusted.bin",
+	"key-held-order.bin",
+	"key-mismatch-algorithm.bin",
+	"key-mismatch-bytes.bin",
+	"key-mismatch-two-entries.bin",
+	"key-trusted-not-held.bin",
+	"proc-key-mismatch.bin",
+	"proc-key-not-held.bin",
+	"proc-trust-not-status.bin",
 }
 
 // TestAppendSignedRefusesATransparentFrame: a transparent frame carries no signature (P6-3), so
