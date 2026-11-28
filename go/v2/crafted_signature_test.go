@@ -138,7 +138,7 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		honestRecord := append(bytes.Clone(signatureRecordPrefix(signed)), value...)
 		shortHead := bytes.Clone(signatureRecordPrefix(identityID))
 		shortHead[len(shortHead)-1] = 0x3f
-		shortRecord := append(shortHead, make([]byte, 63)...)
+		shortRecord := slices.Concat(shortHead, make([]byte, 63))
 		compareDerived(t, replaceOnce(t, honest, honestRecord, shortRecord), "proc-length-before-policy.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
