@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 42 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 44 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -140,6 +140,20 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		shortHead[len(shortHead)-1] = 0x3f
 		shortRecord := slices.Concat(shortHead, make([]byte, 63))
 		compareDerived(t, replaceOnce(t, honest, honestRecord, shortRecord), "proc-length-before-policy.bin")
+	})
+	t.Run("key-length-short.bin and proc-lengths-key-first.bin", func(t *testing.T) {
+		// A held Ed25519 key of 31 bytes: the first 31 bytes of the signer's public key, under its
+		// own identifier. The value is 64 zero bytes in key-length-short, and 63 zero bytes in
+		// proc-lengths-key-first, so the key and the value are both short.
+		shortKey := key.Public().(ed25519.PublicKey)[:31]
+		shortID := KeyIdentifier(Ed25519Algorithm, shortKey)
+		honestRecord := append(bytes.Clone(signatureRecordPrefix(signed)), value...)
+		keyOnly := append(bytes.Clone(signatureRecordPrefix(shortID)), make([]byte, 64)...)
+		compareDerived(t, replaceOnce(t, honest, honestRecord, keyOnly), "key-length-short.bin")
+		shortHead := bytes.Clone(signatureRecordPrefix(shortID))
+		shortHead[len(shortHead)-1] = 0x3f
+		both := slices.Concat(shortHead, make([]byte, 63))
+		compareDerived(t, replaceOnce(t, honest, honestRecord, both), "proc-lengths-key-first.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
