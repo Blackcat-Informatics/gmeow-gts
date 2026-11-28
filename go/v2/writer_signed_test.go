@@ -66,8 +66,9 @@ func TestEd25519HonestIsWrittenByteForByte(t *testing.T) {
 }
 
 // honestSegmentFiles are the P6 input files that hold the honest segment of
-// TestEd25519HonestIsWrittenByteForByte unchanged; their cases read it with other declared
-// inputs, such as the held and trusted keys, or check another value of it.
+// TestEd25519HonestIsWrittenByteForByte unchanged. Their cases read it with other declared
+// inputs, such as the held and trusted keys, or check another value of it; auth-commit-valid
+// repeats the read of ed25519-honest.
 var honestSegmentFiles = []string{
 	"auth-all.bin",
 	"auth-commit-valid.bin",
