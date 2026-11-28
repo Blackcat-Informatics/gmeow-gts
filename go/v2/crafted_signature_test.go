@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 48 P6 input files, each a
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 49 P6 input files, each a
 // written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
@@ -196,6 +196,32 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 			record := encodeSignatureRecord(SignatureRecord{Algorithm: 3, KeyID: signed, Value: make([]byte, file.length)})
 			compareDerived(t, slices.Concat(written[:len(written)-1], arrayHead(1), record), file.name)
 		}
+	})
+	t.Run("proc-no-hash.bin", func(t *testing.T) {
+		// The honest segment under a header of registry version 2 and hash_algorithm 9. The writer's
+		// blob frame under that header is the stored frame; the stored file's signature list holds one
+		// Ed25519 record of the signer's key identifier with a value of 64 zero bytes, and no commit follows.
+		headerEnd, reason := itemEnd(honest, 0)
+		if reason != "" {
+			t.Fatalf("header: %s", reason)
+		}
+		header := bytes.Clone(honest[:headerEnd])
+		if header[3] != 1 || header[4] != 1 {
+			t.Fatalf("the honest header does not name registry version 1 and hash algorithm 1: % x", header[:5])
+		}
+		header[3] = 2
+		header[4] = 9
+		frames := storedFrames(t, honest)
+		writer := segmentWriterFromHeader(header, 0)
+		if _, err := writer.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+			t.Fatal(err)
+		}
+		written := writer.Bytes()
+		if last := written[len(written)-1]; last != 0x80 {
+			t.Fatalf("the frame does not end with the empty signature list: % x", last)
+		}
+		record := encodeSignatureRecord(SignatureRecord{Algorithm: Ed25519Algorithm, KeyID: signed, Value: make([]byte, 64)})
+		compareDerived(t, slices.Concat(written[:len(written)-1], arrayHead(1), record), "proc-no-hash.bin")
 	})
 	t.Run("ed25519-equation-message.bin", func(t *testing.T) {
 		// A valid signature by the same key over the subject whose frame identifier has the low
