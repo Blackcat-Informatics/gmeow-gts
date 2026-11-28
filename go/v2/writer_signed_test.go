@@ -128,3 +128,42 @@ func TestSignaturesOfTwoKeysAreWrittenInOneOrder(t *testing.T) {
 		t.Fatalf("the signature order follows the key order:\n%x\n%x", forward, reverse)
 	}
 }
+
+// TestCompositePublicKeyIsACopy: changing the bytes that PublicKey returns does not change the
+// key, so a later signature still verifies under the key's own identifier.
+func TestCompositePublicKeyIsACopy(t *testing.T) {
+	key, err := NewCompositeKey(bytes.Repeat([]byte{0x05}, 64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := key.PublicKey()
+	want := bytes.Clone(first)
+	first[0] ^= 0xff
+	if !bytes.Equal(key.PublicKey(), want) {
+		t.Fatal("changing the returned public key changed the key")
+	}
+}
+
+// TestZeroValueKeysAreRefusedNotPanicked: a zero-value or nil key holds no private key, so the
+// writer returns an error and writes nothing.
+func TestZeroValueKeysAreRefusedNotPanicked(t *testing.T) {
+	for name, key := range map[string]SigningKey{
+		"nil":                nil,
+		"zero ed25519 key":   Ed25519Key{},
+		"zero composite key": CompositeKey{},
+	} {
+		t.Run(name, func(t *testing.T) {
+			writer, err := NewSegmentWriter(SegmentOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			before := writer.Bytes()
+			if _, err := writer.AppendSignedWith(9, nil, nil, key); err == nil {
+				t.Fatal("the key was accepted")
+			}
+			if !bytes.Equal(writer.Bytes(), before) {
+				t.Fatal("a refused key changed the segment")
+			}
+		})
+	}
+}
