@@ -11,7 +11,8 @@ import (
 // TestCosignAddSignatureIsWrittenByteForByte rebuilds P6/cosign-add-signature.bin: the ordinary
 // frames of the stored file, then one commit signed by the keys of seed 20..3f and seed 00..1f.
 // The commit carries two signatures, the one the first commit of the file held and a second one
-// added by the same frame.
+// added by the same frame. P6/cosign-remove-signature.two-signatures.bin, the input from which a
+// signature is removed, is the same written segment.
 func TestCosignAddSignatureIsWrittenByteForByte(t *testing.T) {
 	stored := vectorBytes(t, "cosign-add-signature.bin")
 	frames := storedFrames(t, stored)
@@ -31,7 +32,11 @@ func TestCosignAddSignatureIsWrittenByteForByte(t *testing.T) {
 	if _, err := writer.CommitSigned(keyA, keyB); err != nil {
 		t.Fatal(err)
 	}
-	if got := writer.Bytes(); !bytes.Equal(got, stored) {
+	got := writer.Bytes()
+	if !bytes.Equal(got, stored) {
 		t.Fatalf("the written segment differs from the stored file:\n got % x\nwant % x", got, stored)
+	}
+	if !bytes.Equal(got, vectorBytes(t, "cosign-remove-signature.two-signatures.bin")) {
+		t.Fatal("P6/cosign-remove-signature.two-signatures.bin is not the written segment")
 	}
 }
