@@ -139,7 +139,8 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 // or 1 when the previous segment has no lineage (P1-85, LINEAGE OF AN APPENDED SEGMENT). It records
 // the offset at which the opener lands. Frames written after it are predecessored by the opener's
 // identifier. It writes the opener as a file that is appended to, so the bytes before it are left
-// unchanged.
+// unchanged. It returns an error, and writes nothing, when the lineage ordinal of the current
+// segment is at its maximum.
 func (w *SegmentWriter) Resync() error {
 	if w.ordinal == math.MaxUint64 {
 		return fmt.Errorf("the lineage ordinal is at its maximum and no further segment can follow")
