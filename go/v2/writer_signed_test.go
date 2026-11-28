@@ -130,7 +130,7 @@ func TestSignaturesOfTwoKeysAreWrittenInOneOrder(t *testing.T) {
 }
 
 // TestCompositePublicKeyIsACopy: changing the bytes that PublicKey returns does not change the
-// key, so a later signature still verifies under the key's own identifier.
+// key: a second call returns the original bytes.
 func TestCompositePublicKeyIsACopy(t *testing.T) {
 	key, err := NewCompositeKey(bytes.Repeat([]byte{0x05}, 64))
 	if err != nil {
