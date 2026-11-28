@@ -4,18 +4,20 @@
 # The default rules apply. The allowlist names published values that protect
 # nothing: the `secret` and `key` of the key-wrap worked example of
 # docs/v2/P8.md, which its key schedule derives from the fixed inputs the
-# example states, and the two encodings of an Ed25519 point of order 8 that
-# P6 input files name as held public keys.
+# example states, and the encodings of four Ed25519 points of order 8 (two
+# points and their negatives) that P6 cases declare as held public keys.
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Worked-example values of the generation-2 sealing draft"
+description = "Published values that protect nothing: sealing worked-example values and Ed25519 points of order 8"
 regexes = [
   '''6eb8c7e1fa146fa53261108b87ec3798ba4a0d415b7790ae69638c7f1761b1dc''',
   '''ad5d2d9f69e8c1daf65da2be6df6d4128842bca8d2ce92526aacec1cc176871d''',
   '''c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a''',
   '''c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa''',
+  '''26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05''',
+  '''26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85''',
 ]
 # Known-answer tests in the generation-2 corpus state their fixed inputs: the key wrap, the AEAD test vectors
 # published in RFC 8452 Appendix C.2, and the composite signature made from a test key whose seeds the entry states.

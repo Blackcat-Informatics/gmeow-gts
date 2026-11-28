@@ -11,12 +11,12 @@ import (
 	"testing"
 )
 
-// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds the P6 input files that are a
-// written segment with one named edit of its signature record. The Ed25519 files start from
+// TestCraftedSignatureFilesAreDerivedFromWrittenSegments rebuilds 28 P6 input files, each a
+// written segment with named edits of its signature record. The Ed25519 files start from
 // P6/ed25519-honest.bin, which the writer reproduces in TestEd25519HonestIsWrittenByteForByte: a
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
 // P6/composite-honest.bin, which the writer reproduces in TestCompositeHonestIsWrittenByteForByte.
-// Every edit refuses an input in which the bytes it replaces do not occur exactly once.
+// Every edit finds its target through a pattern that must occur exactly once.
 func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	_, key := recoveredKeys()
 	honest := vectorBytes(t, "ed25519-honest.bin")
@@ -45,13 +45,20 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	reverse(fieldPrime)
 
 	heldKeys := map[string]string{
-		"ed25519-key-non-canonical-y.bin": "f2ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
-		"ed25519-key-off-curve.bin":       "0200000000000000000000000000000000000000000000000000000000000000",
-		"ed25519-key-small-order-2.bin":   "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
-		"ed25519-key-small-order-3.bin":   "0000000000000000000000000000000000000000000000000000000000000000",
-		"ed25519-key-small-order-4.bin":   "0000000000000000000000000000000000000000000000000000000000000080",
-		"ed25519-key-small-order-7.bin":   "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
-		"ed25519-key-small-order-8.bin":   "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+		"ed25519-key-non-canonical-y.bin":    "f2ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+		"ed25519-key-off-curve.bin":          "0200000000000000000000000000000000000000000000000000000000000000",
+		"ed25519-key-small-order-1.bin":      "0100000000000000000000000000000000000000000000000000000000000000",
+		"ed25519-key-small-order-5.bin":      "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+		"ed25519-key-small-order-6.bin":      "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85",
+		"ed25519-key-non-canonical.bin":      "0100000000000000000000000000000000000000000000000000000000000080",
+		"ed25519-key-non-canonical-sign.bin": "0100000000000000000000000000000000000000000000000000000000000080",
+		"ed25519-key-alias.bin":              "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+		"proc-case-6.bin":                    "0100000000000000000000000000000000000000000000000000000000000000",
+		"ed25519-key-small-order-2.bin":      "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+		"ed25519-key-small-order-3.bin":      "0000000000000000000000000000000000000000000000000000000000000000",
+		"ed25519-key-small-order-4.bin":      "0000000000000000000000000000000000000000000000000000000000000080",
+		"ed25519-key-small-order-7.bin":      "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+		"ed25519-key-small-order-8.bin":      "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
 	}
 	for name, encoded := range heldKeys {
 		t.Run(name, func(t *testing.T) {
@@ -72,6 +79,26 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	})
 	t.Run("ed25519-scalar-max.bin", func(t *testing.T) {
 		compareDerived(t, withScalar(t, bytes.Repeat([]byte{0xff}, 32)), "ed25519-scalar-max.bin")
+	})
+	t.Run("scalars", func(t *testing.T) {
+		// S is replaced by L, by L - 1, and by S + L, which is at least L (P6 section 11.4, case 5).
+		order, _ := new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
+		littleEndian := func(n *big.Int) []byte {
+			out := n.FillBytes(make([]byte, 32))
+			reverse(out)
+			return out
+		}
+		little := bytes.Clone(value[32:])
+		reverse(little)
+		plusOrder := littleEndian(new(big.Int).Add(new(big.Int).SetBytes(little), order))
+		compareDerived(t, withScalar(t, littleEndian(order)), "ed25519-scalar-equals-l.bin")
+		compareDerived(t, withScalar(t, littleEndian(new(big.Int).Sub(order, big.NewInt(1)))), "ed25519-scalar-below-l.bin")
+		compareDerived(t, withScalar(t, plusOrder), "ed25519-scalar-above-l.bin")
+		compareDerived(t, withScalar(t, plusOrder), "proc-case-5.bin")
+		// Case 10: as case 6, the identity point as the held key, and also S + L.
+		identity := KeyIdentifier(Ed25519Algorithm, append([]byte{1}, make([]byte, 31)...))
+		compareDerived(t, relabel(t, withScalar(t, plusOrder), signed, identity), "proc-case-10.bin")
+		compareDerived(t, relabel(t, withScalar(t, plusOrder), signed, identity), "ed25519-order-scalar-key.bin")
 	})
 	t.Run("proc-case-8.bin and proc-case-9.bin", func(t *testing.T) {
 		// Case 8: value[32:64] is S + 1, still below L. Case 9: as case 8, under the identifier
