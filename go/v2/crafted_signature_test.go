@@ -11,6 +11,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"math/big"
+	"slices"
 	"testing"
 )
 
@@ -176,7 +177,7 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		value := append(ml, ed25519.Sign(compositeKey.ed, rep)...)
+		value := slices.Concat(ml, ed25519.Sign(compositeKey.ed, rep))
 		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
 		prefix = appendBytes(prefix, compositeID[:])
 		prefix = append(prefix, 0x59, 0x0d, 0x2d)
@@ -191,7 +192,7 @@ func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		value := append(ml, ed25519.Sign(compositeKey.ed, rep)...)
+		value := slices.Concat(ml, ed25519.Sign(compositeKey.ed, rep))
 		prefix := append(arrayHead(3), byte(CompositeAlgorithm))
 		prefix = appendBytes(prefix, compositeID[:])
 		prefix = append(prefix, 0x59, 0x0d, 0x2d)
