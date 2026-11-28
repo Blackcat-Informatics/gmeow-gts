@@ -30,6 +30,10 @@ type SegmentWriter struct {
 	itemEnds []int
 	// indexStart is the offset of the latest index frame, or -1 when there is none.
 	indexStart int
+	// segmentStart is the offset of the first item of the current segment.
+	segmentStart int
+	// ordinal is the lineage ordinal of the current segment, or 0 when it has no lineage.
+	ordinal uint64
 	// closing is the closing item written last: closingNone, closingOffsets or closingLocator.
 	// Once it is not closingNone, the segment accepts no frame and no further closing item
 	// except a locator after offsets.
@@ -66,6 +70,9 @@ func NewSegmentWriter(options SegmentOptions) (*SegmentWriter, error) {
 	}
 
 	writer := &SegmentWriter{data: data, head: hash("gts2 header", data), itemEnds: []int{len(data)}, indexStart: -1}
+	if options.Lineage != nil {
+		writer.ordinal = options.Lineage.Ordinal
+	}
 	writer.opener = writer.head
 	writer.rangePrefix.push(writer.head)
 	return writer, nil
@@ -126,6 +133,47 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 	return w.append(commitType, content, nil, nil)
 }
 
+// Resync starts a new segment at the end of the file. It appends a resync opener of registry
+// version 1 with BLAKE3-256, no profile and no canonical claim. Its lineage is present, with
+// previous_head the head of the file and ordinal one more than the ordinal of the previous segment,
+// or 1 when the previous segment has no lineage (P1-85, LINEAGE OF AN APPENDED SEGMENT). It records
+// the offset at which the opener lands. Frames written after it are predecessored by the opener's
+// identifier. It writes the opener as a file that is appended to, so the bytes before it are left
+// unchanged.
+func (w *SegmentWriter) Resync() error {
+	landing := uint64(len(w.data))
+	ordinal := w.ordinal + 1
+	marker := hash("gts2 header", []byte{0x81, 0x05})
+	elements := appendUint(nil, 5)
+	elements = appendUint(elements, 2)
+	elements = appendBytes(elements, marker[:16])
+	elements = appendUint(elements, 1)
+	elements = appendUint(elements, 1)
+	elements = append(elements, 0x81, 0x01)
+	elements = append(elements, arrayHead(2)...)
+	elements = appendUint(elements, 2)
+	elements = append(elements, arrayHead(2)...)
+	elements = appendByteString(elements, w.head[:])
+	elements = appendUint(elements, ordinal)
+	elements = appendUint(elements, landing)
+	elements = append(elements, 0x81, 0x01)
+	elements = append(elements, 0x80)
+	identifier := hash("gts2 header", append([]byte{0x8a}, elements...))
+	item := append([]byte{0x8b}, elements...)
+	item = appendBytes(item, identifier[:])
+	w.data = append(w.data, item...)
+	w.segmentStart = int(landing)
+	w.ordinal = ordinal
+	w.itemEnds = []int{len(w.data)}
+	w.opener = identifier
+	w.head = identifier
+	w.rangePrefix = prefixRange{}
+	w.rangePrefix.push(identifier)
+	w.indexStart = -1
+	w.closing = closingNone
+	return nil
+}
+
 // WriteOffsets appends the offsets item: the length of the header and of every frame written so
 // far, opener first. It is written after the last frame and before WriteLocator.
 func (w *SegmentWriter) WriteOffsets() error {
@@ -136,7 +184,7 @@ func (w *SegmentWriter) WriteOffsets() error {
 		return fmt.Errorf("offsets require the header and at least one frame")
 	}
 	lengths := make([]uint64, 0, len(w.itemEnds))
-	previous := 0
+	previous := w.segmentStart
 	for _, end := range w.itemEnds {
 		lengths = append(lengths, uint64(end-previous))
 		previous = end
