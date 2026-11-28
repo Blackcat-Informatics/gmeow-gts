@@ -21,7 +21,7 @@ import (
 // blob and a commit signed by the key of seed 00..1f. The composite files start from
 // P6/composite-honest.bin, which the writer reproduces in TestCompositeHonestIsWrittenByteForByte.
 // Most edits find their target through a pattern that must occur exactly once. The registry
-// version 2 files instead edit a header byte and splice a record onto the end of the segment, each
+// version 2 files instead edit header bytes and splice a record onto the end of the segment, each
 // guarded by an assertion on the byte it reads.
 func TestCraftedSignatureFilesAreDerivedFromWrittenSegments(t *testing.T) {
 	_, key := recoveredKeys()
