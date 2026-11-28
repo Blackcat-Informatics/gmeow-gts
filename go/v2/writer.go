@@ -26,7 +26,21 @@ type SegmentWriter struct {
 	head        Digest
 	opener      Digest
 	rangePrefix prefixRange
+	// itemEnds holds the end offset of each item written so far, the header first.
+	itemEnds []int
+	// indexStart is the offset of the latest index frame, or -1 when there is none.
+	indexStart int
+	// closing is the closing item written last: closingNone, closingOffsets or closingLocator.
+	// Once it is not closingNone, the segment accepts no frame and no further closing item
+	// except a locator after offsets.
+	closing int
 }
+
+const (
+	closingNone = iota
+	closingOffsets
+	closingLocator
+)
 
 // NewSegmentWriter writes a header and starts a segment with its opener as
 // the first leaf of the prefix range.
@@ -51,7 +65,7 @@ func NewSegmentWriter(options SegmentOptions) (*SegmentWriter, error) {
 		data = append(data, 0x81, 1)
 	}
 
-	writer := &SegmentWriter{data: data, head: hash("gts2 header", data)}
+	writer := &SegmentWriter{data: data, head: hash("gts2 header", data), itemEnds: []int{len(data)}, indexStart: -1}
 	writer.opener = writer.head
 	writer.rangePrefix.push(writer.head)
 	return writer, nil
@@ -112,12 +126,61 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 	return w.append(commitType, content, nil, nil)
 }
 
+// WriteOffsets appends the offsets item: the length of the header and of every frame written so
+// far, opener first. It is written after the last frame and before WriteLocator.
+func (w *SegmentWriter) WriteOffsets() error {
+	if w.closing != closingNone {
+		return fmt.Errorf("the segment already has its closing items; an offsets item must come once, after the last frame")
+	}
+	if len(w.itemEnds) < 2 {
+		return fmt.Errorf("offsets require the header and at least one frame")
+	}
+	lengths := make([]uint64, 0, len(w.itemEnds))
+	previous := 0
+	for _, end := range w.itemEnds {
+		lengths = append(lengths, uint64(end-previous))
+		previous = end
+	}
+	item := appendUint(arrayHead(2), 4)
+	item = append(item, arrayHead(uint64(len(lengths)))...)
+	for _, length := range lengths {
+		item = appendUint(item, length)
+	}
+	w.data = append(w.data, item...)
+	w.itemEnds = append(w.itemEnds, len(w.data))
+	w.closing = closingOffsets
+	return nil
+}
+
+// WriteLocator appends the locator: the distance from the latest index frame to the locator
+// itself. It fails when the segment has no index frame, or when a locator is already written.
+// It is the last item of the segment.
+func (w *SegmentWriter) WriteLocator() error {
+	if w.closing == closingLocator {
+		return fmt.Errorf("the segment already has a locator")
+	}
+	if w.indexStart < 0 {
+		return fmt.Errorf("a locator requires an index frame")
+	}
+	distance := uint64(len(w.data) - w.indexStart)
+	item := appendUint(arrayHead(2), 3)
+	item = append(item, 0x1b)
+	item = binary.BigEndian.AppendUint64(item, distance)
+	w.data = append(w.data, item...)
+	w.itemEnds = append(w.itemEnds, len(w.data))
+	w.closing = closingLocator
+	return nil
+}
+
 // append writes one frame. The signatures element is the list that sign returns for the
 // frame's effective identifier, or the empty list when sign is nil. The identity of the
 // frame is complete before sign runs, so nothing is written when sign fails.
 func (w *SegmentWriter) append(frameType uint64, content, payload []byte, sign func(Digest) ([]byte, error)) (Digest, error) {
 	if w.rangePrefix.count == 0 {
 		return Digest{}, fmt.Errorf("initialize the segment writer with NewSegmentWriter")
+	}
+	if w.closing != closingNone {
+		return Digest{}, fmt.Errorf("the segment already has its closing items; no frame follows them")
 	}
 	transparent := frameType == parityType
 	if !transparent && w.rangePrefix.count == math.MaxUint64 {
@@ -144,7 +207,11 @@ func (w *SegmentWriter) append(frameType uint64, content, payload []byte, sign f
 	frame = appendByteString(frame, payload)
 	frame = appendByteString(frame, id[:])
 	frame = append(frame, signatures...)
+	if frameType == indexType {
+		w.indexStart = len(w.data)
+	}
 	w.data = append(w.data, frame...)
+	w.itemEnds = append(w.itemEnds, len(w.data))
 	if !transparent {
 		w.rangePrefix.push(id)
 		w.head = id
