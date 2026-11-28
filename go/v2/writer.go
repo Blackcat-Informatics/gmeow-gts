@@ -30,7 +30,17 @@ type SegmentWriter struct {
 	itemEnds []int
 	// indexStart is the offset of the latest index frame, or -1 when there is none.
 	indexStart int
+	// closing is the closing item written last: closingNone, closingOffsets or closingLocator.
+	// Once it is not closingNone, the segment accepts no frame and no further closing item
+	// except a locator after offsets.
+	closing int
 }
+
+const (
+	closingNone = iota
+	closingOffsets
+	closingLocator
+)
 
 // NewSegmentWriter writes a header and starts a segment with its opener as
 // the first leaf of the prefix range.
@@ -119,6 +129,9 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 // WriteOffsets appends the offsets item: the length of the header and of every frame written so
 // far, opener first. It is written after the last frame and before WriteLocator.
 func (w *SegmentWriter) WriteOffsets() error {
+	if w.closing != closingNone {
+		return fmt.Errorf("the segment already has its closing items; an offsets item must come once, after the last frame")
+	}
 	if len(w.itemEnds) < 2 {
 		return fmt.Errorf("offsets require the header and at least one frame")
 	}
@@ -135,12 +148,17 @@ func (w *SegmentWriter) WriteOffsets() error {
 	}
 	w.data = append(w.data, item...)
 	w.itemEnds = append(w.itemEnds, len(w.data))
+	w.closing = closingOffsets
 	return nil
 }
 
 // WriteLocator appends the locator: the distance from the latest index frame to the locator
-// itself. It fails when the segment has no index frame. It is the last item of the segment.
+// itself. It fails when the segment has no index frame, or when a locator is already written.
+// It is the last item of the segment.
 func (w *SegmentWriter) WriteLocator() error {
+	if w.closing == closingLocator {
+		return fmt.Errorf("the segment already has a locator")
+	}
 	if w.indexStart < 0 {
 		return fmt.Errorf("a locator requires an index frame")
 	}
@@ -150,6 +168,7 @@ func (w *SegmentWriter) WriteLocator() error {
 	item = binary.BigEndian.AppendUint64(item, distance)
 	w.data = append(w.data, item...)
 	w.itemEnds = append(w.itemEnds, len(w.data))
+	w.closing = closingLocator
 	return nil
 }
 
@@ -159,6 +178,9 @@ func (w *SegmentWriter) WriteLocator() error {
 func (w *SegmentWriter) append(frameType uint64, content, payload []byte, sign func(Digest) ([]byte, error)) (Digest, error) {
 	if w.rangePrefix.count == 0 {
 		return Digest{}, fmt.Errorf("initialize the segment writer with NewSegmentWriter")
+	}
+	if w.closing != closingNone {
+		return Digest{}, fmt.Errorf("the segment already has its closing items; no frame follows them")
 	}
 	transparent := frameType == parityType
 	if !transparent && w.rangePrefix.count == math.MaxUint64 {

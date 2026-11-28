@@ -56,3 +56,55 @@ func TestSignatureAddedOtherKeyTrustedIsWrittenByteForByte(t *testing.T) {
 		})
 	}
 }
+
+// TestClosingItemsEndTheSegmentOnce checks that the closing items come after the last frame, once
+// each, with the locator last: a segment refuses a locator without an index frame, and once the
+// offsets item and the locator are written it refuses every further offsets item, locator, frame
+// and commit.
+func TestClosingItemsEndTheSegmentOnce(t *testing.T) {
+	stored := vectorBytes(t, "signature-added-other-key-trusted.a-added-key-trusted.bin")
+	frames, _ := storedFramesBeforeClosing(t, stored)
+
+	bare, err := NewSegmentWriter(SegmentOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bare.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bare.WriteLocator(); err == nil {
+		t.Fatal("a locator without an index frame is accepted")
+	}
+
+	writer, err := NewSegmentWriter(SegmentOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Append(frames[0].frameType, frames[0].content, frames[0].payload); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Append(frames[2].frameType, frames[2].content, frames[2].payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteOffsets(); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteLocator(); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteOffsets(); err == nil {
+		t.Fatal("an offsets item after the locator is accepted")
+	}
+	if err := writer.WriteLocator(); err == nil {
+		t.Fatal("a second locator is accepted")
+	}
+	if _, err := writer.Append(frames[2].frameType, frames[2].content, frames[2].payload); err == nil {
+		t.Fatal("a frame after the closing items is accepted")
+	}
+	if _, err := writer.Commit(); err == nil {
+		t.Fatal("a commit after the closing items is accepted")
+	}
+}
